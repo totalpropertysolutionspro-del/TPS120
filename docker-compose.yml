@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+      - "3000:3000"
+    environment:
+      - PORT=5000
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - FROM_EMAIL=${FROM_EMAIL:-noreply@propertysolutions.com}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PHONE=${ADMIN_PHONE}
+    volumes:
+      - ./property_manager.db:/app/property_manager.db
+      - ./backup.json:/app/backup.json
+    networks:
+      - property-network
+
+networks:
+  property-network:
+    driver: bridge

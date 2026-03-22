@@ -1,0 +1,19 @@
+{
+  "name": "property-manager",
+  "version": "1.0.0",
+  "description": "Total Property Solutions Pro - Complete Property Management App",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "start": "node backend/dist/server.js",
+    "preview": "npm run preview --workspace=frontend"
+  },
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ]
+}
