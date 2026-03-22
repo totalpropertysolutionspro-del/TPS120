@@ -1,9 +1,9 @@
-import { Twilio } from "twilio";
+import twilio from "twilio";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-let twilioClient: Twilio | null = null;
+let twilioClient: ReturnType<typeof twilio> | null = null;
 
 function getTwilioClient() {
   if (twilioClient) {
@@ -20,7 +20,7 @@ function getTwilioClient() {
     return null;
   }
 
-  twilioClient = new Twilio(accountSid, authToken);
+  twilioClient = twilio(accountSid, authToken);
   return twilioClient;
 }
 

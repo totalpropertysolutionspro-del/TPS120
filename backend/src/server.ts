@@ -12,7 +12,7 @@ import notificationsRouter from "./routes/notifications.js";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors());
@@ -22,7 +22,7 @@ app.use(express.json());
 (async () => {
   try {
     await initializeDatabase();
-    backupDatabase();
+    await backupDatabase();
     console.log("Database ready");
   } catch (error) {
     console.error("Failed to initialize database:", error);
