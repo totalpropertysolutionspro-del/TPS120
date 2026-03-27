@@ -242,3 +242,41 @@ export const getUnreadCount = () => client.get<{ count: number }>("/notification
 export const getUnreadNotifications = () => client.get<Notification[]>("/notifications/unread");
 export const markAsRead = (id: string) => client.put(`/notifications/${id}/read`);
 export const markAllAsRead = () => client.put("/notifications/all/read");
+
+// Email Templates
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+  type: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const getEmailTemplates = () => client.get<EmailTemplate[]>("/email-templates");
+export const createEmailTemplate = (data: Omit<EmailTemplate, "id" | "createdAt" | "updatedAt">) =>
+  client.post<EmailTemplate>("/email-templates", data);
+export const updateEmailTemplate = (id: string, data: Partial<EmailTemplate>) =>
+  client.put<EmailTemplate>(`/email-templates/${id}`, data);
+export const deleteEmailTemplate = (id: string) => client.delete(`/email-templates/${id}`);
+
+// Sent Emails
+export interface SentEmail {
+  id: string;
+  toEmail: string;
+  toName?: string;
+  subject: string;
+  body: string;
+  status: string;
+  templateId?: string;
+  entityType?: string;
+  entityId?: string;
+  createdAt: string;
+}
+
+export const getSentEmails = () => client.get<SentEmail[]>("/sent-emails");
+export const sendEmail = (data: { to: string; toName?: string; subject: string; body: string; templateId?: string; entityType?: string; entityId?: string }) =>
+  client.post<SentEmail>("/send-email", data);
+export const sendNotice = (data: { toEmails: string[]; subject: string; body: string; templateId?: string }) =>
+  client.post<SentEmail[]>("/send-notice", data);

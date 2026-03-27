@@ -9,6 +9,7 @@ import {
   CalendarDays,
   FolderOpen,
   Bell,
+  Mail,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -67,6 +68,11 @@ export default function Sidebar({ currentPage, setCurrentPage }: SidebarProps) {
       id: "reminders",
       label: "Reminders",
       icon: Bell,
+    },
+    {
+      id: "emails",
+      label: "Emails",
+      icon: Mail,
     },
   ];
 

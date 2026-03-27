@@ -29,6 +29,8 @@ async function ensureInit() {
     `CREATE TABLE IF NOT EXISTS calendar_events (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT, start_date TEXT NOT NULL, end_date TEXT, all_day INTEGER NOT NULL DEFAULT 0, type TEXT NOT NULL, entity_type TEXT, entity_id TEXT, color TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS reminders (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT, due_date TEXT NOT NULL, priority TEXT NOT NULL, status TEXT NOT NULL, entity_type TEXT, entity_id TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS notifications (id TEXT PRIMARY KEY, type TEXT NOT NULL, title TEXT NOT NULL, message TEXT NOT NULL, is_read INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS email_templates (id TEXT PRIMARY KEY, name TEXT NOT NULL, subject TEXT NOT NULL, body TEXT NOT NULL, type TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS sent_emails (id TEXT PRIMARY KEY, to_email TEXT NOT NULL, to_name TEXT, subject TEXT NOT NULL, body TEXT NOT NULL, status TEXT NOT NULL, template_id TEXT, entity_type TEXT, entity_id TEXT, created_at TEXT NOT NULL)`,
   ];
   for (const s of statements) await sqlite.execute(s);
   initialized = true;
@@ -621,6 +623,97 @@ app.put("/api/notifications/all/read", async (_req, res) => {
   await ensureInit();
   await sqlite.execute({ sql: "UPDATE notifications SET is_read = 1 WHERE is_read = ?", args: [0] });
   res.json({ success: true });
+});
+
+// ===== EMAIL TEMPLATES =====
+const EMAIL_TEMPLATE_COLS = ["id", "name", "subject", "body", "type", "created_at", "updated_at"];
+
+app.get("/api/email-templates", async (_req, res) => {
+  await ensureInit();
+  const result = await sqlite.execute("SELECT * FROM email_templates");
+  res.json(result.rows.map(toCamel));
+});
+
+app.get("/api/email-templates/:id", async (req, res) => {
+  await ensureInit();
+  const result = await sqlite.execute({ sql: "SELECT * FROM email_templates WHERE id = ?", args: [req.params.id] });
+  result.rows.length ? res.json(toCamel(result.rows[0] as any)) : res.status(404).json({ error: "Not found" });
+});
+
+app.post("/api/email-templates", async (req, res) => {
+  await ensureInit();
+  const id = uuidv4();
+  const ts = now();
+  const { name, subject, body, type } = req.body;
+  await sqlite.execute({
+    sql: "INSERT INTO email_templates (id, name, subject, body, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    args: [id, name, subject, body, type, ts, ts],
+  });
+  const result = await sqlite.execute({ sql: "SELECT * FROM email_templates WHERE id = ?", args: [id] });
+  res.status(201).json(toCamel(result.rows[0] as any));
+});
+
+app.put("/api/email-templates/:id", async (req, res) => {
+  await ensureInit();
+  const sets: string[] = [];
+  const args: any[] = [];
+  for (const [k, v] of Object.entries(req.body)) {
+    const col = toSnake(k);
+    if (EMAIL_TEMPLATE_COLS.includes(col) && col !== "id") {
+      sets.push(`${col} = ?`);
+      args.push(v);
+    }
+  }
+  sets.push("updated_at = ?");
+  args.push(now());
+  args.push(req.params.id);
+  await sqlite.execute({ sql: `UPDATE email_templates SET ${sets.join(", ")} WHERE id = ?`, args });
+  const result = await sqlite.execute({ sql: "SELECT * FROM email_templates WHERE id = ?", args: [req.params.id] });
+  result.rows.length ? res.json(toCamel(result.rows[0] as any)) : res.status(404).json({ error: "Not found" });
+});
+
+app.delete("/api/email-templates/:id", async (req, res) => {
+  await ensureInit();
+  await sqlite.execute({ sql: "DELETE FROM email_templates WHERE id = ?", args: [req.params.id] });
+  res.json({ success: true });
+});
+
+// ===== SENT EMAILS =====
+app.get("/api/sent-emails", async (_req, res) => {
+  await ensureInit();
+  const result = await sqlite.execute("SELECT * FROM sent_emails ORDER BY created_at DESC");
+  res.json(result.rows.map(toCamel));
+});
+
+app.post("/api/send-email", async (req, res) => {
+  await ensureInit();
+  const { to, toName, subject, body, templateId, entityType, entityId } = req.body;
+  if (!to || !subject || !body) return res.status(400).json({ error: "to, subject, and body are required" });
+  const id = uuidv4();
+  const ts = now();
+  await sqlite.execute({
+    sql: "INSERT INTO sent_emails (id, to_email, to_name, subject, body, status, template_id, entity_type, entity_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    args: [id, to, toName ?? null, subject, body, "queued", templateId ?? null, entityType ?? null, entityId ?? null, ts],
+  });
+  const result = await sqlite.execute({ sql: "SELECT * FROM sent_emails WHERE id = ?", args: [id] });
+  res.status(201).json(toCamel(result.rows[0] as any));
+});
+
+app.post("/api/send-notice", async (req, res) => {
+  await ensureInit();
+  const { toEmails, subject, body, templateId } = req.body;
+  if (!toEmails || !Array.isArray(toEmails) || !subject || !body) return res.status(400).json({ error: "toEmails array, subject, and body are required" });
+  const ts = now();
+  const created: any[] = [];
+  for (const email of toEmails) {
+    const id = uuidv4();
+    await sqlite.execute({
+      sql: "INSERT INTO sent_emails (id, to_email, to_name, subject, body, status, template_id, entity_type, entity_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      args: [id, email, null, subject, body, "queued", templateId ?? null, "notice", null, ts],
+    });
+    created.push({ id, toEmail: email, subject, status: "queued", createdAt: ts });
+  }
+  res.status(201).json(created);
 });
 
 // Health check

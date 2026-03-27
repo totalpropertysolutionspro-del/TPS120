@@ -11,6 +11,7 @@ import Contacts from "./components/Contacts";
 import Calendar from "./components/Calendar";
 import Files from "./components/Files";
 import Reminders from "./components/Reminders";
+import Emails from "./components/Emails";
 
 type Page =
   | "dashboard"
@@ -22,7 +23,8 @@ type Page =
   | "contacts"
   | "calendar"
   | "files"
-  | "reminders";
+  | "reminders"
+  | "emails";
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
@@ -49,6 +51,8 @@ function App() {
         return <Files />;
       case "reminders":
         return <Reminders />;
+      case "emails":
+        return <Emails />;
       default:
         return <Dashboard />;
     }
