@@ -17,7 +17,7 @@ let initialized = false;
 async function ensureInit() {
   if (initialized) return;
   const statements = [
-    `CREATE TABLE IF NOT EXISTS properties (id TEXT PRIMARY KEY, name TEXT NOT NULL, address TEXT NOT NULL, type TEXT NOT NULL, units INTEGER NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS properties (id TEXT PRIMARY KEY, name TEXT NOT NULL, address TEXT NOT NULL, type TEXT NOT NULL, units INTEGER NOT NULL, status TEXT NOT NULL, contact_name TEXT, email TEXT, phone TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS tenants (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT NOT NULL, property_id TEXT NOT NULL, unit TEXT NOT NULL, lease_start TEXT NOT NULL, lease_end TEXT NOT NULL, rent_amount REAL NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS work_orders (id TEXT PRIMARY KEY, title TEXT NOT NULL, property_id TEXT NOT NULL, priority TEXT NOT NULL, urgency TEXT, type TEXT, status TEXT NOT NULL, assigned_vendor_id TEXT, notes TEXT, due_date TEXT, contact_phone TEXT, contact_email TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS invoices (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, amount REAL NOT NULL, due_date TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
@@ -119,7 +119,7 @@ function crud(table: string, cols: string[]) {
 }
 
 // Mount CRUD routes
-app.use("/api/properties", crud("properties", ["id","name","address","type","units","status","created_at","updated_at"]));
+app.use("/api/properties", crud("properties", ["id","name","address","type","units","status","contact_name","email","phone","created_at","updated_at"]));
 app.use("/api/tenants", crud("tenants", ["id","name","email","phone","property_id","unit","lease_start","lease_end","rent_amount","created_at","updated_at"]));
 app.use("/api/work-orders", crud("work_orders", ["id","title","property_id","priority","urgency","type","status","assigned_vendor_id","notes","due_date","contact_phone","contact_email","created_at","updated_at"]));
 app.use("/api/invoices", crud("invoices", ["id","tenant_id","amount","due_date","status","created_at","updated_at"]));

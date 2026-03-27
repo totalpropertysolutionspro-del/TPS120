@@ -20,7 +20,7 @@ export default function WorkOrders() {
     dueDate: "",
     contactPhone: "",
     contactEmail: "",
-    assignedStaffId: "",
+    assignedVendorId: "",
     notes: "",
   });
 
@@ -70,7 +70,7 @@ export default function WorkOrders() {
       dueDate: wo.dueDate || "",
       contactPhone: wo.contactPhone || "",
       contactEmail: wo.contactEmail || "",
-      assignedStaffId: wo.assignedStaffId || "",
+      assignedVendorId: wo.assignedVendorId || "",
       notes: wo.notes || "",
     });
     setEditingId(wo.id);
@@ -99,7 +99,7 @@ export default function WorkOrders() {
       dueDate: "",
       contactPhone: "",
       contactEmail: "",
-      assignedStaffId: "",
+      assignedVendorId: "",
       notes: "",
     });
     setShowForm(false);

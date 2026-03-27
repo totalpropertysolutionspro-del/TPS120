@@ -7,6 +7,9 @@ export const properties = sqliteTable("properties", {
   type: text("type").notNull(), // "apartment", "house", "commercial"
   units: integer("units").notNull(),
   status: text("status").notNull(), // "active", "inactive", "maintenance"
+  contactName: text("contact_name"),
+  email: text("email"),
+  phone: text("phone"),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 });

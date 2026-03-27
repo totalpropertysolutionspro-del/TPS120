@@ -61,11 +61,11 @@ export default function Tenants() {
       name: tenant.name,
       email: tenant.email,
       phone: tenant.phone,
-      propertyId: tenant.propertyId,
-      unit: tenant.unit,
+      propertyId: tenant.propertyId || "",
+      unit: tenant.unit || "",
       leaseStart: tenant.leaseStart,
       leaseEnd: tenant.leaseEnd,
-      rentAmount: tenant.rentAmount,
+      rentAmount: tenant.rentAmount || 0,
     });
     setEditingId(tenant.id);
     setShowForm(true);
@@ -127,89 +127,111 @@ export default function Tenants() {
             {editingId ? "Edit Tenant" : "New Tenant"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Full Name"
-              value={formData.name}
-              onChange={(e) =>
-                setFormData({ ...formData, name: e.target.value })
-              }
-              className="input"
-              required
-            />
-            <input
-              type="email"
-              placeholder="Email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              className="input"
-              required
-            />
-            <input
-              type="tel"
-              placeholder="Phone"
-              value={formData.phone}
-              onChange={(e) =>
-                setFormData({ ...formData, phone: e.target.value })
-              }
-              className="input"
-              required
-            />
-            <select
-              value={formData.propertyId}
-              onChange={(e) =>
-                setFormData({ ...formData, propertyId: e.target.value })
-              }
-              className="input"
-              required
-            >
-              <option value="">Select Property</option>
-              {properties.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-            <input
-              type="text"
-              placeholder="Unit"
-              value={formData.unit}
-              onChange={(e) =>
-                setFormData({ ...formData, unit: e.target.value })
-              }
-              className="input"
-              required
-            />
-            <input
-              type="date"
-              value={formData.leaseStart}
-              onChange={(e) =>
-                setFormData({ ...formData, leaseStart: e.target.value })
-              }
-              className="input"
-              required
-            />
-            <input
-              type="date"
-              value={formData.leaseEnd}
-              onChange={(e) =>
-                setFormData({ ...formData, leaseEnd: e.target.value })
-              }
-              className="input"
-              required
-            />
-            <input
-              type="number"
-              placeholder="Rent Amount"
-              value={formData.rentAmount}
-              onChange={(e) =>
-                setFormData({ ...formData, rentAmount: parseFloat(e.target.value) })
-              }
-              className="input"
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                className="input"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                className="input"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+              <input
+                type="tel"
+                placeholder="Phone"
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
+                className="input"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Property</label>
+              <select
+                value={formData.propertyId}
+                onChange={(e) =>
+                  setFormData({ ...formData, propertyId: e.target.value })
+                }
+                className="input"
+              >
+                <option value="">No property assigned</option>
+                {properties.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+              <input
+                type="text"
+                placeholder="Unit"
+                value={formData.unit}
+                onChange={(e) =>
+                  setFormData({ ...formData, unit: e.target.value })
+                }
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Lease Start</label>
+              <input
+                type="date"
+                value={formData.leaseStart}
+                onChange={(e) =>
+                  setFormData({ ...formData, leaseStart: e.target.value })
+                }
+                className="input"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Lease End</label>
+              <input
+                type="date"
+                value={formData.leaseEnd}
+                onChange={(e) =>
+                  setFormData({ ...formData, leaseEnd: e.target.value })
+                }
+                className="input"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Rent Amount</label>
+              <input
+                type="number"
+                placeholder="Rent Amount"
+                value={formData.rentAmount}
+                onChange={(e) =>
+                  setFormData({ ...formData, rentAmount: parseFloat(e.target.value) || 0 })
+                }
+                className="input"
+                required
+              />
+            </div>
             <div className="flex gap-2">
               <button type="submit" className="btn btn-primary">
                 {editingId ? "Update" : "Create"}
@@ -273,7 +295,7 @@ export default function Tenants() {
                     {tenant.unit}
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    ${tenant.rentAmount.toLocaleString()}
+                    ${(tenant.rentAmount || 0).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 text-sm space-x-2">
                     <button

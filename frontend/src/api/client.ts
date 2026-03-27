@@ -13,6 +13,9 @@ export interface Property {
   type: string;
   units: number;
   status: string;
+  contactName?: string;
+  email?: string;
+  phone?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -26,7 +29,7 @@ export interface Tenant {
   unit: string;
   leaseStart: string;
   leaseEnd: string;
-  rentAmount: number;
+  rentAmount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,12 +40,12 @@ export interface WorkOrder {
   propertyId: string;
   priority: string;
   status: string;
-  urgency: string;
-  type: string;
-  dueDate: string;
-  contactPhone: string;
-  contactEmail: string;
-  assignedStaffId?: string;
+  urgency?: string;
+  type?: string;
+  dueDate?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  assignedVendorId?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;

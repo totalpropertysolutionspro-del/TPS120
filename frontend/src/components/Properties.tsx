@@ -13,6 +13,9 @@ export default function Properties() {
     type: "apartment",
     units: 1,
     status: "active",
+    contactName: "",
+    email: "",
+    phone: "",
   });
 
   useEffect(() => {
@@ -45,6 +48,9 @@ export default function Properties() {
         type: "apartment",
         units: 1,
         status: "active",
+        contactName: "",
+        email: "",
+        phone: "",
       });
       setShowForm(false);
       setEditingId(null);
@@ -61,6 +67,9 @@ export default function Properties() {
       type: property.type,
       units: property.units,
       status: property.status,
+      contactName: property.contactName || "",
+      email: property.email || "",
+      phone: property.phone || "",
     });
     setEditingId(property.id);
     setShowForm(true);
@@ -95,6 +104,9 @@ export default function Properties() {
               type: "apartment",
               units: 1,
               status: "active",
+              contactName: "",
+              email: "",
+              phone: "",
             });
           }}
           className="btn btn-primary flex items-center gap-2"
@@ -162,6 +174,33 @@ export default function Properties() {
               <option value="inactive">Inactive</option>
               <option value="maintenance">Maintenance</option>
             </select>
+            <input
+              type="text"
+              placeholder="Contact Name"
+              value={formData.contactName}
+              onChange={(e) =>
+                setFormData({ ...formData, contactName: e.target.value })
+              }
+              className="input"
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              value={formData.email}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
+              className="input"
+            />
+            <input
+              type="tel"
+              placeholder="Phone"
+              value={formData.phone}
+              onChange={(e) =>
+                setFormData({ ...formData, phone: e.target.value })
+              }
+              className="input"
+            />
             <div className="flex gap-2">
               <button type="submit" className="btn btn-primary">
                 {editingId ? "Update" : "Create"}
@@ -201,6 +240,15 @@ export default function Properties() {
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Contact
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Email
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Phone
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Actions
               </th>
             </tr>
@@ -230,6 +278,15 @@ export default function Properties() {
                   >
                     {property.status}
                   </span>
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-600">
+                  {property.contactName || "—"}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-600">
+                  {property.email || "—"}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-600">
+                  {property.phone || "—"}
                 </td>
                 <td className="px-6 py-4 text-sm space-x-2">
                   <button

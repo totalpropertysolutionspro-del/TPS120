@@ -1,0 +1,55 @@
+redirectsOrigin = "config"
+plugins = []
+functionsDirectory = "/Users/miguelmedina/Projects/Active/TPS120/netlify/functions"
+functionsDirectoryOrigin = "config-v1"
+headers = []
+
+[functions]
+
+[functions."*"]
+
+[build]
+publish = "/Users/miguelmedina/Projects/Active/TPS120/frontend/dist"
+publishOrigin = "config"
+commandOrigin = "config"
+command = "cd frontend && npm install && npm run build"
+functions = "/Users/miguelmedina/Projects/Active/TPS120/netlify/functions"
+
+[build.environment]
+NODE_VERSION = "18"
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]
+
+[[redirects]]
+from = "/api/*"
+to = "/.netlify/functions/api/:splat"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]

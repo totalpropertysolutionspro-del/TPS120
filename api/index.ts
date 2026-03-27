@@ -18,7 +18,7 @@ let initialized = false;
 async function ensureInit() {
   if (initialized) return;
   const statements = [
-    `CREATE TABLE IF NOT EXISTS properties (id TEXT PRIMARY KEY, name TEXT NOT NULL, address TEXT NOT NULL, type TEXT NOT NULL, units INTEGER NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS properties (id TEXT PRIMARY KEY, name TEXT NOT NULL, address TEXT NOT NULL, type TEXT NOT NULL, units INTEGER NOT NULL, status TEXT NOT NULL, contact_name TEXT, email TEXT, phone TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS tenants (id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT NOT NULL, property_id TEXT NOT NULL, unit TEXT NOT NULL, lease_start TEXT NOT NULL, lease_end TEXT NOT NULL, rent_amount REAL NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS work_orders (id TEXT PRIMARY KEY, title TEXT NOT NULL, property_id TEXT NOT NULL, priority TEXT NOT NULL, urgency TEXT, type TEXT, status TEXT NOT NULL, assigned_vendor_id TEXT, notes TEXT, due_date TEXT, contact_phone TEXT, contact_email TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
     `CREATE TABLE IF NOT EXISTS invoices (id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, amount REAL NOT NULL, due_date TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,
@@ -53,7 +53,7 @@ function toSnake(key: string): string {
 }
 
 // ===== PROPERTIES =====
-const PROPERTY_COLS = ["id", "name", "address", "type", "units", "status", "created_at", "updated_at"];
+const PROPERTY_COLS = ["id", "name", "address", "type", "units", "status", "contact_name", "email", "phone", "created_at", "updated_at"];
 
 app.get("/api/properties", async (_req, res) => {
   await ensureInit();
@@ -71,10 +71,10 @@ app.post("/api/properties", async (req, res) => {
   await ensureInit();
   const id = uuidv4();
   const ts = now();
-  const { name, address, type, units, status } = req.body;
+  const { name, address, type, units, status, contactName, email, phone } = req.body;
   await sqlite.execute({
-    sql: "INSERT INTO properties (id, name, address, type, units, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-    args: [id, name, address, type, units, status, ts, ts],
+    sql: "INSERT INTO properties (id, name, address, type, units, status, contact_name, email, phone, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    args: [id, name, address, type, units, status, contactName ?? null, email ?? null, phone ?? null, ts, ts],
   });
   const result = await sqlite.execute({ sql: "SELECT * FROM properties WHERE id = ?", args: [id] });
   res.status(201).json(toCamel(result.rows[0] as any));

@@ -39,7 +39,7 @@ export default function Dashboard() {
           api.getReminders().catch(() => ({ data: [] as api.Reminder[] })),
         ]);
 
-      const totalRent = tenantsRes.data.reduce((sum, t) => sum + t.rentAmount, 0);
+      const totalRent = tenantsRes.data.reduce((sum, t) => sum + (t.rentAmount || 0), 0);
 
       const openTickets = workOrdersRes.data.filter(
         (w) => w.status === "open" || w.status === "in_progress"
@@ -130,7 +130,7 @@ export default function Dashboard() {
         <StatCard
           icon={DollarSign}
           label="Monthly Revenue"
-          value={`$${stats.revenue.toLocaleString()}`}
+          value={`$${(stats.revenue || 0).toLocaleString()}`}
           trend="+5% from last month"
         />
         <StatCard

@@ -213,7 +213,7 @@ export default function Invoices() {
                   {getTenantName(invoice.tenantId)}
                 </td>
                 <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                  ${invoice.amount.toLocaleString()}
+                  ${(invoice.amount || 0).toLocaleString()}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600">
                   {new Date(invoice.dueDate).toLocaleDateString()}
