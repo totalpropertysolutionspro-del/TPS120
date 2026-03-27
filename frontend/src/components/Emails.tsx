@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { Trash2, Edit2, Plus, Send, Mail, FileText, Clock, Users, CheckSquare, Square } from "lucide-react";
+import emailjs from "@emailjs/browser";
 import * as api from "../api/client";
+
+// EmailJS config
+const EMAILJS_SERVICE_ID = "service_aup2x7q";
+const EMAILJS_TEMPLATE_ID = "template_7yh68xt";
+const EMAILJS_PUBLIC_KEY = "w6gNA5WCMSUL694vt";
 
 type Tab = "compose" | "notice" | "templates" | "sent";
 
@@ -80,6 +86,17 @@ function ComposeTab() {
     try {
       setSending(true);
       setError("");
+
+      // Send via EmailJS
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        to_email: formData.to,
+        to_name: formData.toName || formData.to,
+        from_name: "TPS Pro Manager",
+        subject: formData.subject,
+        message: formData.body,
+      }, EMAILJS_PUBLIC_KEY);
+
+      // Save to DB as sent
       await api.sendEmail({
         to: formData.to,
         toName: formData.toName || undefined,
@@ -87,12 +104,13 @@ function ComposeTab() {
         body: formData.body,
         templateId: formData.templateId || undefined,
       });
-      setSuccess("Email queued successfully!");
+
+      setSuccess("Email sent successfully!");
       setFormData({ to: "", toName: "", subject: "", body: "", templateId: "" });
       setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
       console.error("Failed to send email:", err);
-      setError(err?.response?.data?.error || "Failed to send email. Please try again.");
+      setError(err?.text || err?.message || "Failed to send email. Please try again.");
       setTimeout(() => setError(""), 5000);
     } finally {
       setSending(false);
@@ -223,19 +241,41 @@ function NoticeTab() {
     try {
       setSending(true);
       setError("");
+      const emails = Array.from(selectedEmails);
+      let sentCount = 0;
+      let failCount = 0;
+
+      // Send each email via EmailJS
+      for (const email of emails) {
+        try {
+          await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+            to_email: email,
+            to_name: email,
+            from_name: "TPS Pro Manager",
+            subject: formData.subject,
+            message: formData.body,
+          }, EMAILJS_PUBLIC_KEY);
+          sentCount++;
+        } catch {
+          failCount++;
+        }
+      }
+
+      // Save all to DB
       await api.sendNotice({
-        toEmails: Array.from(selectedEmails),
+        toEmails: emails,
         subject: formData.subject,
         body: formData.body,
         templateId: formData.templateId || undefined,
       });
-      setSuccess(`Notice queued for ${selectedEmails.size} recipient(s)!`);
+
+      setSuccess(`Notice sent to ${sentCount} recipient(s)!${failCount > 0 ? ` ${failCount} failed.` : ""}`);
       setSelectedEmails(new Set());
       setFormData({ subject: "", body: "", templateId: "" });
-      setTimeout(() => setSuccess(""), 3000);
+      setTimeout(() => setSuccess(""), 5000);
     } catch (err: any) {
       console.error("Failed to send notice:", err);
-      setError(err?.response?.data?.error || "Failed to send notice. Please try again.");
+      setError(err?.text || err?.message || "Failed to send notice. Please try again.");
       setTimeout(() => setError(""), 5000);
     } finally {
       setSending(false);
