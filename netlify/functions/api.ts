@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import serverless from "serverless-http";
 import { createClient } from "@libsql/client/web";
+import nodemailer from "nodemailer";
 
 const sqlite = createClient({
   url: process.env.TURSO_DATABASE_URL!,
@@ -224,37 +225,84 @@ app.get("/api/sent-emails", async (_req, res) => {
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-// Send Email (queues it)
+// Gmail SMTP transporter
+function getMailer() {
+  const user = process.env.GMAIL_USER;
+  const pass = process.env.GMAIL_APP_PASSWORD;
+  if (!user || !pass) return null;
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: { user, pass },
+  });
+}
+
+// Send Email (actually sends via Gmail SMTP)
 app.post("/api/send-email", async (req, res) => {
   try {
     await ensureInit();
     const { to, toName, subject, body, templateId, entityType, entityId } = req.body;
     if (!to || !subject || !body) return res.status(400).json({ error: "to, subject, and body are required" });
     const id = uid(); const ts = now();
+    let status = "queued";
+
+    // Try to send via Gmail
+    const mailer = getMailer();
+    if (mailer) {
+      try {
+        await mailer.sendMail({
+          from: `"TPS Pro Manager" <${process.env.GMAIL_USER}>`,
+          to: toName ? `"${toName}" <${to}>` : to,
+          subject,
+          text: body,
+          html: body.replace(/\n/g, "<br>"),
+        });
+        status = "sent";
+      } catch (mailErr: any) {
+        console.error("Gmail send failed:", mailErr.message);
+        status = "failed";
+      }
+    }
+
     await sqlite.execute({
       sql: "INSERT INTO sent_emails (id, to_email, to_name, subject, body, status, template_id, entity_type, entity_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      args: [id, to, toName ?? null, subject, body, "queued", templateId ?? null, entityType ?? null, entityId ?? null, ts],
+      args: [id, to, toName ?? null, subject, body, status, templateId ?? null, entityType ?? null, entityId ?? null, ts],
     });
     const result = await sqlite.execute({ sql: "SELECT * FROM sent_emails WHERE id = ?", args: [id] });
-    res.status(201).json(toCamel(result.rows[0] as any));
+    const row = toCamel(result.rows[0] as any);
+    if (status === "failed") return res.status(500).json({ ...row, error: "Email failed to send. Check Gmail App Password." });
+    res.status(201).json(row);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-// Send Notice (bulk queue)
+// Send Notice (bulk send via Gmail)
 app.post("/api/send-notice", async (req, res) => {
   try {
     await ensureInit();
     const { toEmails, subject, body, templateId } = req.body;
     if (!toEmails || !Array.isArray(toEmails) || !subject || !body) return res.status(400).json({ error: "toEmails array, subject, and body are required" });
     const ts = now();
+    const mailer = getMailer();
     const created: any[] = [];
     for (const email of toEmails) {
       const id = uid();
+      let status = "queued";
+      if (mailer) {
+        try {
+          await mailer.sendMail({
+            from: `"TPS Pro Manager" <${process.env.GMAIL_USER}>`,
+            to: email,
+            subject,
+            text: body,
+            html: body.replace(/\n/g, "<br>"),
+          });
+          status = "sent";
+        } catch { status = "failed"; }
+      }
       await sqlite.execute({
         sql: "INSERT INTO sent_emails (id, to_email, to_name, subject, body, status, template_id, entity_type, entity_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        args: [id, email, null, subject, body, "queued", templateId ?? null, "notice", null, ts],
+        args: [id, email, null, subject, body, status, templateId ?? null, "notice", null, ts],
       });
-      created.push({ id, toEmail: email, subject, status: "queued", createdAt: ts });
+      created.push({ id, toEmail: email, subject, status, createdAt: ts });
     }
     res.status(201).json(created);
   } catch (e: any) { res.status(500).json({ error: e.message }); }
