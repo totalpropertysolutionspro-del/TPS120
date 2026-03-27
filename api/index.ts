@@ -16,7 +16,7 @@ import {
   calendarEvents,
   reminders,
   notifications,
-} from "../backend/src/db/schema.js";
+} from "../backend/src/db/schema";
 
 // Initialize Turso cloud database
 const sqlite = createClient({
