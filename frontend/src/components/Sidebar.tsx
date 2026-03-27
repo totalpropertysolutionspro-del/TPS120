@@ -78,10 +78,10 @@ export default function Sidebar({ currentPage, setCurrentPage }: SidebarProps) {
 
   return (
     <aside className="w-64 bg-gray-900 text-white h-full flex flex-col">
-      <div className="p-6 border-b border-gray-800 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <Building2 className="w-8 h-8" />
-          <span className="text-xl font-bold">TPSP</span>
+      <div className="p-4 border-b border-gray-800 flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <img src="/tps-logo.png" alt="TPS Pro" className="w-10 h-10 object-contain" />
+          <span className="text-lg font-bold leading-tight">TPS Pro<br/><span className="text-xs font-normal text-gray-400">Manager</span></span>
         </div>
       </div>
 
