@@ -2,9 +2,13 @@ import {
   LayoutDashboard,
   Building2,
   Users,
-  FileText,
+  Ticket,
   DollarSign,
-  Hammer,
+  Wrench,
+  Contact,
+  CalendarDays,
+  FolderOpen,
+  Bell,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -30,9 +34,9 @@ export default function Sidebar({ currentPage, setCurrentPage }: SidebarProps) {
       icon: Users,
     },
     {
-      id: "workorders",
-      label: "Work Orders",
-      icon: Hammer,
+      id: "tickets",
+      label: "Tickets",
+      icon: Ticket,
     },
     {
       id: "invoices",
@@ -40,9 +44,29 @@ export default function Sidebar({ currentPage, setCurrentPage }: SidebarProps) {
       icon: DollarSign,
     },
     {
-      id: "staff",
-      label: "Staff",
-      icon: FileText,
+      id: "vendors",
+      label: "Vendors",
+      icon: Wrench,
+    },
+    {
+      id: "contacts",
+      label: "Contacts",
+      icon: Contact,
+    },
+    {
+      id: "calendar",
+      label: "Calendar",
+      icon: CalendarDays,
+    },
+    {
+      id: "files",
+      label: "Files",
+      icon: FolderOpen,
+    },
+    {
+      id: "reminders",
+      label: "Reminders",
+      icon: Bell,
     },
   ];
 

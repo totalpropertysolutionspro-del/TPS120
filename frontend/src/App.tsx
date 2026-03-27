@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
@@ -6,9 +6,23 @@ import Properties from "./components/Properties";
 import Tenants from "./components/Tenants";
 import WorkOrders from "./components/WorkOrders";
 import Invoices from "./components/Invoices";
-import Staff from "./components/Staff";
+import Vendors from "./components/Vendors";
+import Contacts from "./components/Contacts";
+import Calendar from "./components/Calendar";
+import Files from "./components/Files";
+import Reminders from "./components/Reminders";
 
-type Page = "dashboard" | "properties" | "tenants" | "workorders" | "invoices" | "staff";
+type Page =
+  | "dashboard"
+  | "properties"
+  | "tenants"
+  | "tickets"
+  | "invoices"
+  | "vendors"
+  | "contacts"
+  | "calendar"
+  | "files"
+  | "reminders";
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>("dashboard");
@@ -21,12 +35,20 @@ function App() {
         return <Properties />;
       case "tenants":
         return <Tenants />;
-      case "workorders":
+      case "tickets":
         return <WorkOrders />;
       case "invoices":
         return <Invoices />;
-      case "staff":
-        return <Staff />;
+      case "vendors":
+        return <Vendors />;
+      case "contacts":
+        return <Contacts />;
+      case "calendar":
+        return <Calendar />;
+      case "files":
+        return <Files />;
+      case "reminders":
+        return <Reminders />;
       default:
         return <Dashboard />;
     }

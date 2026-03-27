@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { db } from "../db/index.js";
 import { tenants } from "../db/schema.js";
+import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 import { createNotification } from "../services/notification.js";
 
@@ -23,7 +24,7 @@ router.get("/:id", async (req: Request, res: Response) => {
     const tenant = await db
       .select()
       .from(tenants)
-      .where((t) => t.id === req.params.id)
+      .where(eq(tenants.id, req.params.id))
       .get();
 
     if (!tenant) {
@@ -116,7 +117,7 @@ router.put("/:id", async (req: Request, res: Response) => {
     const existingTenant = await db
       .select()
       .from(tenants)
-      .where((t) => t.id === req.params.id)
+      .where(eq(tenants.id, req.params.id))
       .get();
 
     if (!existingTenant) {
@@ -139,7 +140,7 @@ router.put("/:id", async (req: Request, res: Response) => {
     await db
       .update(tenants)
       .set(updatedTenant)
-      .where((t) => t.id === req.params.id)
+      .where(eq(tenants.id, req.params.id))
       .run();
 
     res.json(updatedTenant);
@@ -155,7 +156,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
     const existingTenant = await db
       .select()
       .from(tenants)
-      .where((t) => t.id === req.params.id)
+      .where(eq(tenants.id, req.params.id))
       .get();
 
     if (!existingTenant) {
@@ -164,7 +165,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
 
     await db
       .delete(tenants)
-      .where((t) => t.id === req.params.id)
+      .where(eq(tenants.id, req.params.id))
       .run();
 
     res.json({ message: "Tenant deleted successfully" });

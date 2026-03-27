@@ -1,21 +1,24 @@
 import { useEffect, useState } from "react";
 import {
   Building2,
-  Hammer,
+  Ticket,
   DollarSign,
   Users,
   TrendingUp,
+  Wrench,
+  Bell,
 } from "lucide-react";
 import * as api from "../api/client";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
     properties: 0,
-    openWorkOrders: 0,
+    openTickets: 0,
     revenue: 0,
-    occupancy: 0,
     tenants: 0,
     invoicesOverdue: 0,
+    activeVendors: 0,
+    upcomingReminders: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -26,25 +29,19 @@ export default function Dashboard() {
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const [propertiesRes, tenantsRes, workOrdersRes, invoicesRes] =
+      const [propertiesRes, tenantsRes, workOrdersRes, invoicesRes, vendorsRes, remindersRes] =
         await Promise.all([
           api.getProperties(),
           api.getTenants(),
           api.getWorkOrders(),
           api.getInvoices(),
+          api.getVendors().catch(() => ({ data: [] as api.Vendor[] })),
+          api.getReminders().catch(() => ({ data: [] as api.Reminder[] })),
         ]);
-
-      const totalUnits = propertiesRes.data.reduce(
-        (sum, p) => sum + p.units,
-        0
-      );
-      const occupiedUnits = tenantsRes.data.length;
-      const occupancy =
-        totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
 
       const totalRent = tenantsRes.data.reduce((sum, t) => sum + t.rentAmount, 0);
 
-      const openWO = workOrdersRes.data.filter(
+      const openTickets = workOrdersRes.data.filter(
         (w) => w.status === "open" || w.status === "in_progress"
       ).length;
 
@@ -52,13 +49,22 @@ export default function Dashboard() {
         (i) => i.status === "overdue"
       ).length;
 
+      const activeVendors = vendorsRes.data.filter(
+        (v) => v.status === "active"
+      ).length;
+
+      const upcomingReminders = remindersRes.data.filter(
+        (r) => r.status === "pending"
+      ).length;
+
       setStats({
         properties: propertiesRes.data.length,
-        openWorkOrders: openWO,
+        openTickets,
         revenue: totalRent,
-        occupancy,
         tenants: tenantsRes.data.length,
         invoicesOverdue: overdueInvoices,
+        activeVendors,
+        upcomingReminders,
       });
     } catch (error) {
       console.error("Failed to fetch stats:", error);
@@ -104,11 +110,11 @@ export default function Dashboard() {
       <div>
         <h2 className="text-3xl font-bold text-gray-900">Dashboard</h2>
         <p className="text-gray-600 mt-2">
-          Welcome to Total Property Solutions Pro
+          Welcome to TPS Pro Manager
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           icon={Building2}
           label="Total Properties"
@@ -128,22 +134,25 @@ export default function Dashboard() {
           trend="+5% from last month"
         />
         <StatCard
-          icon={Hammer}
-          label="Open Work Orders"
-          value={stats.openWorkOrders}
-          trend="1 in progress"
-        />
-        <StatCard
-          icon={TrendingUp}
-          label="Occupancy Rate"
-          value={`${stats.occupancy}%`}
-          trend="All good"
+          icon={Ticket}
+          label="Open Tickets"
+          value={stats.openTickets}
         />
         <StatCard
           icon={DollarSign}
           label="Overdue Invoices"
           value={stats.invoicesOverdue}
           trend={stats.invoicesOverdue > 0 ? "Action needed" : "All paid"}
+        />
+        <StatCard
+          icon={Wrench}
+          label="Active Vendors"
+          value={stats.activeVendors}
+        />
+        <StatCard
+          icon={Bell}
+          label="Upcoming Reminders"
+          value={stats.upcomingReminders}
         />
       </div>
 
@@ -154,13 +163,16 @@ export default function Dashboard() {
           </h3>
           <div className="space-y-2">
             <button className="w-full btn btn-primary text-left">
-              Create New Work Order
+              New Ticket
             </button>
             <button className="w-full btn btn-secondary text-left">
-              Add New Tenant
+              New Vendor
             </button>
             <button className="w-full btn btn-secondary text-left">
-              Create Invoice
+              Add Contact
+            </button>
+            <button className="w-full btn btn-secondary text-left">
+              Schedule Event
             </button>
           </div>
         </div>

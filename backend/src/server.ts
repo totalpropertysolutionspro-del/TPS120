@@ -6,7 +6,12 @@ import propertiesRouter from "./routes/properties.js";
 import tenantsRouter from "./routes/tenants.js";
 import workOrdersRouter from "./routes/workorders.js";
 import invoicesRouter from "./routes/invoices.js";
-import staffRouter from "./routes/staff.js";
+import vendorsRouter from "./routes/vendors.js";
+import contactsRouter from "./routes/contacts.js";
+import notesRouter from "./routes/notes.js";
+import filesRouter from "./routes/files.js";
+import calendarRouter from "./routes/calendar.js";
+import remindersRouter from "./routes/reminders.js";
 import notificationsRouter from "./routes/notifications.js";
 
 dotenv.config();
@@ -16,7 +21,7 @@ const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" })); // Increased for base64 file uploads
 
 // Initialize database on startup
 (async () => {
@@ -35,7 +40,12 @@ app.use("/api/properties", propertiesRouter);
 app.use("/api/tenants", tenantsRouter);
 app.use("/api/work-orders", workOrdersRouter);
 app.use("/api/invoices", invoicesRouter);
-app.use("/api/staff", staffRouter);
+app.use("/api/vendors", vendorsRouter);
+app.use("/api/contacts", contactsRouter);
+app.use("/api/notes", notesRouter);
+app.use("/api/files", filesRouter);
+app.use("/api/calendar", calendarRouter);
+app.use("/api/reminders", remindersRouter);
 app.use("/api/notifications", notificationsRouter);
 
 // Health check

@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { Trash2, Edit2, Plus } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Trash2, Edit2, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import * as api from "../api/client";
+import { NotesPanel } from "./Notes";
 
 export default function Tenants() {
   const [tenants, setTenants] = useState<api.Tenant[]>([]);
@@ -8,6 +9,7 @@ export default function Tenants() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [expandedTenantId, setExpandedTenantId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -253,40 +255,64 @@ export default function Tenants() {
           </thead>
           <tbody className="divide-y">
             {tenants.map((tenant) => (
-              <tr key={tenant.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                  {tenant.name}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  {tenant.email}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  {tenant.phone}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  {getPropertyName(tenant.propertyId)}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-600">
-                  {tenant.unit}
-                </td>
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                  ${tenant.rentAmount.toLocaleString()}
-                </td>
-                <td className="px-6 py-4 text-sm space-x-2">
-                  <button
-                    onClick={() => handleEdit(tenant)}
-                    className="text-blue-600 hover:text-blue-900"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(tenant.id)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
+              <React.Fragment key={tenant.id}>
+                <tr className="hover:bg-gray-50">
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    {tenant.name}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {tenant.email}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {tenant.phone}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {getPropertyName(tenant.propertyId)}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {tenant.unit}
+                  </td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    ${tenant.rentAmount.toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 text-sm space-x-2">
+                    <button
+                      onClick={() =>
+                        setExpandedTenantId(
+                          expandedTenantId === tenant.id ? null : tenant.id
+                        )
+                      }
+                      className="text-emerald-600 hover:text-emerald-900"
+                      title="Toggle Notes"
+                    >
+                      {expandedTenantId === tenant.id ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleEdit(tenant)}
+                      className="text-blue-600 hover:text-blue-900"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(tenant.id)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+                {expandedTenantId === tenant.id && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-4 bg-gray-50">
+                      <NotesPanel entityType="tenant" entityId={tenant.id} />
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>

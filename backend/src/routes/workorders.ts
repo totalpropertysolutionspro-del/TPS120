@@ -1,8 +1,9 @@
 import { Router, Request, Response } from "express";
 import { db } from "../db/index.js";
 import { workOrders } from "../db/schema.js";
+import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
-import { createNotification } from "../services/notification.js";
+import { createNotification, NotificationType } from "../services/notification.js";
 
 const router = Router();
 
@@ -23,7 +24,7 @@ router.get("/:id", async (req: Request, res: Response) => {
     const workOrder = await db
       .select()
       .from(workOrders)
-      .where((w) => w.id === req.params.id)
+      .where(eq(workOrders.id, req.params.id))
       .get();
 
     if (!workOrder) {
@@ -40,8 +41,19 @@ router.get("/:id", async (req: Request, res: Response) => {
 // Create work order
 router.post("/", async (req: Request, res: Response) => {
   try {
-    const { title, propertyId, priority, status, assignedStaffId, notes } =
-      req.body;
+    const {
+      title,
+      propertyId,
+      priority,
+      urgency,
+      type,
+      status,
+      assignedVendorId,
+      notes,
+      dueDate,
+      contactPhone,
+      contactEmail,
+    } = req.body;
 
     if (!title || !propertyId || !priority) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -55,9 +67,14 @@ router.post("/", async (req: Request, res: Response) => {
       title,
       propertyId,
       priority,
+      urgency: urgency || null,
+      type: type || null,
       status: status || "open",
-      assignedStaffId: assignedStaffId || null,
+      assignedVendorId: assignedVendorId || null,
       notes: notes || null,
+      dueDate: dueDate || null,
+      contactPhone: contactPhone || null,
+      contactEmail: contactEmail || null,
       createdAt: now,
       updatedAt: now,
     };
@@ -73,6 +90,19 @@ router.post("/", async (req: Request, res: Response) => {
       email: process.env.ADMIN_EMAIL,
     });
 
+    // If urgency is critical, send additional urgent notification
+    if (urgency === "critical") {
+      await createNotification({
+        type: "ticket_critical",
+        title: "CRITICAL Ticket Created",
+        message: `CRITICAL: Work order "${title}" requires immediate attention`,
+        shouldSendEmail: true,
+        shouldSendSMS: true,
+        email: process.env.ADMIN_EMAIL,
+        phone: process.env.ADMIN_PHONE,
+      });
+    }
+
     res.status(201).json(newWorkOrder);
   } catch (error) {
     console.error("Error creating work order:", error);
@@ -83,13 +113,24 @@ router.post("/", async (req: Request, res: Response) => {
 // Update work order
 router.put("/:id", async (req: Request, res: Response) => {
   try {
-    const { title, propertyId, priority, status, assignedStaffId, notes } =
-      req.body;
+    const {
+      title,
+      propertyId,
+      priority,
+      urgency,
+      type,
+      status,
+      assignedVendorId,
+      notes,
+      dueDate,
+      contactPhone,
+      contactEmail,
+    } = req.body;
 
     const existingWorkOrder = await db
       .select()
       .from(workOrders)
-      .where((w) => w.id === req.params.id)
+      .where(eq(workOrders.id, req.params.id))
       .get();
 
     if (!existingWorkOrder) {
@@ -101,23 +142,28 @@ router.put("/:id", async (req: Request, res: Response) => {
       ...(title && { title }),
       ...(propertyId && { propertyId }),
       ...(priority && { priority }),
+      ...(urgency !== undefined && { urgency }),
+      ...(type !== undefined && { type }),
       ...(status && { status }),
-      ...(assignedStaffId && { assignedStaffId }),
+      ...(assignedVendorId !== undefined && { assignedVendorId }),
       ...(notes !== undefined && { notes }),
+      ...(dueDate !== undefined && { dueDate }),
+      ...(contactPhone !== undefined && { contactPhone }),
+      ...(contactEmail !== undefined && { contactEmail }),
       updatedAt: new Date().toISOString(),
     };
 
     // Create notification if status changed
     if (status && status !== existingWorkOrder.status) {
-      let notificationType = "work_order_updated" as const;
+      let notificationType: NotificationType = "work_order_updated";
       let notificationMessage = `Work order status changed to ${status}`;
 
       if (status === "in_progress") {
         notificationType = "work_order_in_progress";
-        notificationMessage = `Work order "${title}" is now in progress`;
+        notificationMessage = `Work order "${updatedWorkOrder.title}" is now in progress`;
       } else if (status === "completed") {
         notificationType = "work_order_completed";
-        notificationMessage = `Work order "${title}" has been completed`;
+        notificationMessage = `Work order "${updatedWorkOrder.title}" has been completed`;
       }
 
       await createNotification({
@@ -131,10 +177,23 @@ router.put("/:id", async (req: Request, res: Response) => {
       });
     }
 
+    // If urgency changed to critical, send urgent notification
+    if (urgency === "critical" && existingWorkOrder.urgency !== "critical") {
+      await createNotification({
+        type: "ticket_critical",
+        title: "CRITICAL Ticket Escalated",
+        message: `CRITICAL: Work order "${updatedWorkOrder.title}" has been escalated to critical urgency`,
+        shouldSendEmail: true,
+        shouldSendSMS: true,
+        email: process.env.ADMIN_EMAIL,
+        phone: process.env.ADMIN_PHONE,
+      });
+    }
+
     await db
       .update(workOrders)
       .set(updatedWorkOrder)
-      .where((w) => w.id === req.params.id)
+      .where(eq(workOrders.id, req.params.id))
       .run();
 
     res.json(updatedWorkOrder);
@@ -150,7 +209,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
     const existingWorkOrder = await db
       .select()
       .from(workOrders)
-      .where((w) => w.id === req.params.id)
+      .where(eq(workOrders.id, req.params.id))
       .get();
 
     if (!existingWorkOrder) {
@@ -159,7 +218,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
 
     await db
       .delete(workOrders)
-      .where((w) => w.id === req.params.id)
+      .where(eq(workOrders.id, req.params.id))
       .run();
 
     res.json({ message: "Work order deleted successfully" });

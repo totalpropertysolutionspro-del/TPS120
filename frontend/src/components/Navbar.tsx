@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-import { Bell } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 
 export default function Navbar() {
@@ -7,7 +5,7 @@ export default function Navbar() {
     <nav className="bg-white shadow">
       <div className="flex justify-between items-center px-6 py-4">
         <h1 className="text-2xl font-bold text-gray-900">
-          Total Property Solutions Pro
+          TPS Pro Manager
         </h1>
         <div className="flex items-center gap-6">
           <NotificationBell />

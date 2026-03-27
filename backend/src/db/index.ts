@@ -4,12 +4,23 @@ import * as schema from "./schema.js";
 import { writeFileSync } from "fs";
 import { mkdir } from "fs/promises";
 
-const dbPath = "file:./data/tps.db";
+// Use Turso cloud database for PERMANENT data storage
+// Falls back to local SQLite for development if no cloud URL set
+const dbUrl = process.env.TURSO_DATABASE_URL || "file:./data/tps.db";
+const authToken = process.env.TURSO_AUTH_TOKEN;
 
-// Ensure data directory exists
-await mkdir("./data", { recursive: true });
+if (!process.env.TURSO_DATABASE_URL) {
+  // Local dev fallback - ensure data directory exists
+  await mkdir("./data", { recursive: true });
+  console.log("Using LOCAL SQLite database (data will not persist on Vercel)");
+} else {
+  console.log("Connected to Turso cloud database (data is PERMANENT)");
+}
 
-const sqlite = createClient({ url: dbPath });
+const sqlite = createClient({
+  url: dbUrl,
+  authToken: authToken,
+});
 
 export const db = drizzle(sqlite, { schema });
 
@@ -18,12 +29,16 @@ export async function backupDatabase() {
   const backupPath = "backup.json";
 
   try {
-    const [properties, tenants, workOrders, invoices, staff, notifications] = await Promise.all([
+    const [properties, tenants, workOrders, invoices, vendors, contacts, entityNotes, calendarEvents, reminders, notifications] = await Promise.all([
       db.select().from(schema.properties),
       db.select().from(schema.tenants),
       db.select().from(schema.workOrders),
       db.select().from(schema.invoices),
-      db.select().from(schema.staff),
+      db.select().from(schema.vendors),
+      db.select().from(schema.contacts),
+      db.select().from(schema.entityNotes),
+      db.select().from(schema.calendarEvents),
+      db.select().from(schema.reminders),
       db.select().from(schema.notifications),
     ]);
 
@@ -33,7 +48,11 @@ export async function backupDatabase() {
       tenants,
       workOrders,
       invoices,
-      staff,
+      vendors,
+      contacts,
+      notes: entityNotes,
+      calendarEvents,
+      reminders,
       notifications,
     };
 
@@ -44,14 +63,11 @@ export async function backupDatabase() {
   }
 }
 
-// Initialize database tables
+// Initialize database tables - ALWAYS runs CREATE TABLE IF NOT EXISTS
+// This ensures tables exist in Turso cloud on first deploy
 export async function initializeDatabase() {
   try {
-    // Create tables by running migrations (Drizzle will create them if they don't exist)
-    await db.select().from(schema.properties);
-    console.log("Database initialized successfully");
-  } catch (error) {
-    console.log("Creating tables...");
+    console.log("Ensuring all tables exist...");
 
     // Create tables using batch operations
     const statements = [
@@ -83,9 +99,14 @@ export async function initializeDatabase() {
         title TEXT NOT NULL,
         property_id TEXT NOT NULL,
         priority TEXT NOT NULL,
+        urgency TEXT,
+        type TEXT,
         status TEXT NOT NULL,
-        assigned_staff_id TEXT,
+        assigned_vendor_id TEXT,
         notes TEXT,
+        due_date TEXT,
+        contact_phone TEXT,
+        contact_email TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )`,
@@ -98,12 +119,74 @@ export async function initializeDatabase() {
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )`,
-      `CREATE TABLE IF NOT EXISTS staff (
+      `CREATE TABLE IF NOT EXISTS vendors (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
-        role TEXT NOT NULL,
-        phone TEXT NOT NULL,
-        email TEXT NOT NULL,
+        company TEXT,
+        email TEXT,
+        phone TEXT,
+        service TEXT NOT NULL,
+        rate REAL,
+        notes TEXT,
+        status TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS contacts (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT,
+        phone TEXT,
+        company TEXT,
+        role TEXT,
+        type TEXT NOT NULL,
+        notes TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS notes (
+        id TEXT PRIMARY KEY,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        title TEXT,
+        content TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS files (
+        id TEXT PRIMARY KEY,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT,
+        filename TEXT NOT NULL,
+        original_name TEXT NOT NULL,
+        mime_type TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        data TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS calendar_events (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        start_date TEXT NOT NULL,
+        end_date TEXT,
+        all_day INTEGER NOT NULL DEFAULT 0,
+        type TEXT NOT NULL,
+        entity_type TEXT,
+        entity_id TEXT,
+        color TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )`,
+      `CREATE TABLE IF NOT EXISTS reminders (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        due_date TEXT NOT NULL,
+        priority TEXT NOT NULL,
+        status TEXT NOT NULL,
+        entity_type TEXT,
+        entity_id TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       )`,
@@ -121,7 +204,10 @@ export async function initializeDatabase() {
       await sqlite.execute(statement);
     }
 
-    console.log("Tables created successfully");
+    console.log("All tables verified/created successfully");
+  } catch (error) {
+    console.error("Database initialization failed:", error);
+    throw error;
   }
 }
 

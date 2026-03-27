@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { db } from "../db/index.js";
 import { properties } from "../db/schema.js";
+import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
 
 const router = Router();
@@ -22,7 +23,7 @@ router.get("/:id", async (req: Request, res: Response) => {
     const property = await db
       .select()
       .from(properties)
-      .where((p) => p.id === req.params.id)
+      .where(eq(properties.id, req.params.id))
       .get();
 
     if (!property) {
@@ -75,7 +76,7 @@ router.put("/:id", async (req: Request, res: Response) => {
     const existingProperty = await db
       .select()
       .from(properties)
-      .where((p) => p.id === req.params.id)
+      .where(eq(properties.id, req.params.id))
       .get();
 
     if (!existingProperty) {
@@ -95,7 +96,7 @@ router.put("/:id", async (req: Request, res: Response) => {
     await db
       .update(properties)
       .set(updatedProperty)
-      .where((p) => p.id === req.params.id)
+      .where(eq(properties.id, req.params.id))
       .run();
 
     res.json(updatedProperty);
@@ -111,7 +112,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
     const existingProperty = await db
       .select()
       .from(properties)
-      .where((p) => p.id === req.params.id)
+      .where(eq(properties.id, req.params.id))
       .get();
 
     if (!existingProperty) {
@@ -120,7 +121,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
 
     await db
       .delete(properties)
-      .where((p) => p.id === req.params.id)
+      .where(eq(properties.id, req.params.id))
       .run();
 
     res.json({ message: "Property deleted successfully" });

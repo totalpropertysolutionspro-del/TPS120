@@ -1,8 +1,9 @@
 import { Router, Request, Response } from "express";
 import { db } from "../db/index.js";
 import { invoices, tenants } from "../db/schema.js";
+import { eq } from "drizzle-orm";
 import { v4 as uuidv4 } from "uuid";
-import { createNotification } from "../services/notification.js";
+import { createNotification, NotificationType } from "../services/notification.js";
 
 const router = Router();
 
@@ -23,7 +24,7 @@ router.get("/:id", async (req: Request, res: Response) => {
     const invoice = await db
       .select()
       .from(invoices)
-      .where((i) => i.id === req.params.id)
+      .where(eq(invoices.id, req.params.id))
       .get();
 
     if (!invoice) {
@@ -49,7 +50,7 @@ router.post("/", async (req: Request, res: Response) => {
     const tenant = await db
       .select()
       .from(tenants)
-      .where((t) => t.id === tenantId)
+      .where(eq(tenants.id, tenantId))
       .get();
 
     if (!tenant) {
@@ -95,7 +96,7 @@ router.put("/:id", async (req: Request, res: Response) => {
     const existingInvoice = await db
       .select()
       .from(invoices)
-      .where((i) => i.id === req.params.id)
+      .where(eq(invoices.id, req.params.id))
       .get();
 
     if (!existingInvoice) {
@@ -105,7 +106,7 @@ router.put("/:id", async (req: Request, res: Response) => {
     const tenant = await db
       .select()
       .from(tenants)
-      .where((t) => t.id === existingInvoice.tenantId)
+      .where(eq(tenants.id, existingInvoice.tenantId))
       .get();
 
     const updatedInvoice = {
@@ -119,7 +120,7 @@ router.put("/:id", async (req: Request, res: Response) => {
 
     // Create notification if status changed
     if (status && status !== existingInvoice.status) {
-      let notificationType = "invoice_paid" as const;
+      let notificationType: NotificationType = "invoice_paid";
       let notificationMessage = `Invoice has been marked as ${status}`;
 
       if (status === "paid") {
@@ -144,7 +145,7 @@ router.put("/:id", async (req: Request, res: Response) => {
     await db
       .update(invoices)
       .set(updatedInvoice)
-      .where((i) => i.id === req.params.id)
+      .where(eq(invoices.id, req.params.id))
       .run();
 
     res.json(updatedInvoice);
@@ -160,7 +161,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
     const existingInvoice = await db
       .select()
       .from(invoices)
-      .where((i) => i.id === req.params.id)
+      .where(eq(invoices.id, req.params.id))
       .get();
 
     if (!existingInvoice) {
@@ -169,7 +170,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
 
     await db
       .delete(invoices)
-      .where((i) => i.id === req.params.id)
+      .where(eq(invoices.id, req.params.id))
       .run();
 
     res.json({ message: "Invoice deleted successfully" });
