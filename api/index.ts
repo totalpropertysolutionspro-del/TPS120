@@ -140,7 +140,7 @@ app.post("/api/work-orders", async (req, res) => {
   const id = uuidv4(); const ts = now();
   await db.insert(workOrders).values({ id, ...req.body, createdAt: ts, updatedAt: ts });
   // Notification
-  await db.insert(notifications).values({ id: uuidv4(), type: "work_order_created", title: "New Ticket", message: `Ticket created: ${req.body.title}`, isRead: 0, createdAt: ts });
+  await db.insert(notifications).values({ id: uuidv4(), type: "work_order_created", title: "New Ticket", message: `Ticket created: ${req.body.title}`, isRead: false, createdAt: ts });
   const rows = await db.select().from(workOrders).where(eq(workOrders.id, id));
   res.status(201).json(rows[0]);
 });
@@ -378,21 +378,21 @@ app.get("/api/notifications", async (req, res) => {
 });
 app.get("/api/notifications/unread", async (req, res) => {
   await initPromise;
-  res.json(await db.select().from(notifications).where(eq(notifications.isRead, 0)));
+  res.json(await db.select().from(notifications).where(eq(notifications.isRead, false)));
 });
 app.get("/api/notifications/unread/count", async (req, res) => {
   await initPromise;
-  const unread = await db.select().from(notifications).where(eq(notifications.isRead, 0));
+  const unread = await db.select().from(notifications).where(eq(notifications.isRead, false));
   res.json({ count: unread.length });
 });
 app.put("/api/notifications/:id/read", async (req, res) => {
   await initPromise;
-  await db.update(notifications).set({ isRead: 1 }).where(eq(notifications.id, req.params.id));
+  await db.update(notifications).set({ isRead: true }).where(eq(notifications.id, req.params.id));
   res.json({ success: true });
 });
 app.put("/api/notifications/all/read", async (req, res) => {
   await initPromise;
-  await db.update(notifications).set({ isRead: 1 }).where(eq(notifications.isRead, 0));
+  await db.update(notifications).set({ isRead: true }).where(eq(notifications.isRead, false));
   res.json({ success: true });
 });
 
