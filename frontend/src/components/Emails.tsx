@@ -54,6 +54,7 @@ function ComposeTab() {
   const [templates, setTemplates] = useState<api.EmailTemplate[]>([]);
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     to: "",
     toName: "",
@@ -78,6 +79,7 @@ function ComposeTab() {
     if (!formData.to || !formData.subject || !formData.body) return;
     try {
       setSending(true);
+      setError("");
       await api.sendEmail({
         to: formData.to,
         toName: formData.toName || undefined,
@@ -88,8 +90,10 @@ function ComposeTab() {
       setSuccess("Email queued successfully!");
       setFormData({ to: "", toName: "", subject: "", body: "", templateId: "" });
       setTimeout(() => setSuccess(""), 3000);
-    } catch (error) {
-      console.error("Failed to send email:", error);
+    } catch (err: any) {
+      console.error("Failed to send email:", err);
+      setError(err?.response?.data?.error || "Failed to send email. Please try again.");
+      setTimeout(() => setError(""), 5000);
     } finally {
       setSending(false);
     }
@@ -100,6 +104,9 @@ function ComposeTab() {
       <h2 className="text-lg font-semibold mb-4">Compose Email</h2>
       {success && (
         <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">{success}</div>
+      )}
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>
       )}
       <form onSubmit={handleSend} className="space-y-4">
         {templates.length > 0 && (
@@ -183,6 +190,7 @@ function NoticeTab() {
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({ subject: "", body: "", templateId: "" });
 
   useEffect(() => {
@@ -214,6 +222,7 @@ function NoticeTab() {
     if (selectedEmails.size === 0 || !formData.subject || !formData.body) return;
     try {
       setSending(true);
+      setError("");
       await api.sendNotice({
         toEmails: Array.from(selectedEmails),
         subject: formData.subject,
@@ -224,8 +233,10 @@ function NoticeTab() {
       setSelectedEmails(new Set());
       setFormData({ subject: "", body: "", templateId: "" });
       setTimeout(() => setSuccess(""), 3000);
-    } catch (error) {
-      console.error("Failed to send notice:", error);
+    } catch (err: any) {
+      console.error("Failed to send notice:", err);
+      setError(err?.response?.data?.error || "Failed to send notice. Please try again.");
+      setTimeout(() => setError(""), 5000);
     } finally {
       setSending(false);
     }
@@ -241,6 +252,9 @@ function NoticeTab() {
       <h2 className="text-lg font-semibold mb-4">Send Notice</h2>
       {success && (
         <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-lg text-sm">{success}</div>
+      )}
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">{error}</div>
       )}
       <form onSubmit={handleSendNotice} className="space-y-4">
         {/* Recipients */}
