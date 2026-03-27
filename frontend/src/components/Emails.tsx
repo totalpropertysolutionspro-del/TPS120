@@ -94,6 +94,8 @@ function ComposeTab() {
         from_name: "Total Property Solutions Pro LLC",
         reply_to: "totalpropertysolutionsp@gmail.com",
         subject: formData.subject,
+        name: "Total Property Solutions Pro LLC",
+        time: new Date().toLocaleString(),
         message: formData.body,
       }, EMAILJS_PUBLIC_KEY);
 
@@ -255,6 +257,8 @@ function NoticeTab() {
             from_name: "Total Property Solutions Pro LLC",
             reply_to: "totalpropertysolutionsp@gmail.com",
             subject: formData.subject,
+            name: "Total Property Solutions Pro LLC",
+            time: new Date().toLocaleString(),
             message: formData.body,
           }, EMAILJS_PUBLIC_KEY);
           sentCount++;
