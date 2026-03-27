@@ -91,7 +91,8 @@ function ComposeTab() {
       await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
         to_email: formData.to,
         to_name: formData.toName || formData.to,
-        from_name: "TPS Pro Manager",
+        from_name: "Total Property Solutions Pro LLC",
+        reply_to: "totalpropertysolutionsp@gmail.com",
         subject: formData.subject,
         message: formData.body,
       }, EMAILJS_PUBLIC_KEY);
@@ -251,7 +252,8 @@ function NoticeTab() {
           await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
             to_email: email,
             to_name: email,
-            from_name: "TPS Pro Manager",
+            from_name: "Total Property Solutions Pro LLC",
+            reply_to: "totalpropertysolutionsp@gmail.com",
             subject: formData.subject,
             message: formData.body,
           }, EMAILJS_PUBLIC_KEY);
