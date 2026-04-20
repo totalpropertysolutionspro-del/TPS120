@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: tps120-backend
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build --workspace=backend
+    startCommand: node backend/dist/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        value: totalpropertysolutionsp@gmail.com
+      - key: FROM_EMAIL
+        value: noreply@totalpropertysolutionspro.com
+      - key: ADMIN_EMAIL
+        value: totalpropertysolutionsp@gmail.com
+      - key: ADMIN_PHONE
+        value: "+15189487156"
