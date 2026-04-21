@@ -217,3 +217,18 @@ export type Reminder = typeof reminders.$inferSelect;
 export type NewReminder = typeof reminders.$inferInsert;
 export type Notification = typeof notifications.$inferSelect;
 export type NewNotification = typeof notifications.$inferInsert;
+
+export const messages = sqliteTable("messages", {
+  id: text("id").primaryKey(),
+  type: text("type").notNull(),
+  recipients: text("recipients").notNull(),
+  subject: text("subject"),
+  body: text("body").notNull(),
+  sentAt: text("sent_at"),
+  sentBy: text("sent_by"),
+  propertyId: text("property_id"),
+  propertyName: text("property_name"),
+  status: text("status").default("sent"),
+});
+export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;

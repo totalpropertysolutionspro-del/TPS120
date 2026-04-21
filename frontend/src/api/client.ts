@@ -315,3 +315,22 @@ export const deleteEmailTemplate = (id: string) => client.delete(`/email-templat
 export const getSentEmails = () => client.get<SentEmail[]>("/sent-emails");
 export const sendEmail = (data: { to: string; toName?: string; subject: string; body: string; templateId?: string; entityType?: string; entityId?: string }) => client.post<SentEmail>("/send-email", data);
 export const sendNotice = (data: { toEmails: string[]; subject: string; body: string; templateId?: string }) => client.post<SentEmail[]>("/send-notice", data);
+
+// Messages
+export interface MessageRecord {
+  id: string;
+  type: string;
+  recipients: string;
+  subject?: string;
+  body: string;
+  sentAt?: string;
+  sentBy?: string;
+  propertyId?: string;
+  propertyName?: string;
+  status?: string;
+}
+
+export const getMessageHistory = () => client.get<MessageRecord[]>("/messages/history");
+export const logMessage = (data: Omit<MessageRecord, "id" | "sentAt">) => client.post<MessageRecord>("/messages/log", data);
+export const sendSMS = (data: { phones: string[]; body: string; recipients: any[]; propertyId?: string; propertyName?: string }) =>
+  client.post<{ results: any[]; messageId: string }>("/messages/sms", data);

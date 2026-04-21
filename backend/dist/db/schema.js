@@ -171,4 +171,16 @@ export const notifications = sqliteTable("notifications", {
     isRead: integer("is_read", { mode: "boolean" }).notNull().default(false),
     createdAt: text("created_at").notNull(),
 });
+export const messages = sqliteTable("messages", {
+    id: text("id").primaryKey(),
+    type: text("type").notNull(),
+    recipients: text("recipients").notNull(),
+    subject: text("subject"),
+    body: text("body").notNull(),
+    sentAt: text("sent_at"),
+    sentBy: text("sent_by"),
+    propertyId: text("property_id"),
+    propertyName: text("property_name"),
+    status: text("status").default("sent"),
+});
 //# sourceMappingURL=schema.js.map

@@ -257,6 +257,18 @@ export async function initializeDatabase() {
         is_read INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL
       )`,
+            `CREATE TABLE IF NOT EXISTS messages (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        recipients TEXT NOT NULL,
+        subject TEXT,
+        body TEXT NOT NULL,
+        sent_at TEXT,
+        sent_by TEXT,
+        property_id TEXT,
+        property_name TEXT,
+        status TEXT DEFAULT 'sent'
+      )`,
         ];
         for (const sql of statements) {
             await sqlite.execute(sql);

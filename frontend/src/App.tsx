@@ -9,8 +9,9 @@ import WorkOrders from "./components/WorkOrders";
 import Staff from "./components/Staff";
 import Files from "./components/Files";
 import Financials from "./components/Financials";
+import Messaging from "./components/Messaging";
 
-export type Page = "dashboard" | "properties" | "property-hub" | "clients" | "work-orders" | "staff" | "files" | "financials";
+export type Page = "dashboard" | "properties" | "property-hub" | "clients" | "work-orders" | "staff" | "files" | "financials" | "messaging";
 
 export interface NavState {
   page: Page;
@@ -44,6 +45,8 @@ function App() {
         return <Files />;
       case "financials":
         return <Financials />;
+      case "messaging":
+        return <Messaging />;
       default:
         return <Dashboard navigate={navigate} />;
     }

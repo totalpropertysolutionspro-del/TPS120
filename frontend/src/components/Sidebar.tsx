@@ -1,4 +1,4 @@
-import { LayoutDashboard, Building2, Users, Wrench, HardHat, FolderOpen, DollarSign, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Building2, Users, Wrench, HardHat, FolderOpen, DollarSign, MessageSquare, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Page } from "../App";
 
 interface Props {
@@ -16,6 +16,7 @@ const navItems = [
   { id: "staff" as Page,        label: "Staff & Scheduling",  icon: HardHat },
   { id: "financials" as Page,   label: "Financials",          icon: DollarSign },
   { id: "files" as Page,        label: "Files",               icon: FolderOpen },
+  { id: "messaging" as Page,    label: "Messaging",           icon: MessageSquare },
 ];
 
 export default function Sidebar({ currentPage, navigate, isOpen, setIsOpen }: Props) {

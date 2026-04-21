@@ -19,6 +19,7 @@ import staffAssignmentsRouter from "./routes/staff-assignments.js";
 import searchRouter from "./routes/search.js";
 import expensesRouter from "./routes/expenses.js";
 import financialsRouter from "./routes/financials.js";
+import messagesRouter from "./routes/messages.js";
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use("/api/staff-assignments", staffAssignmentsRouter);
 app.use("/api/search", searchRouter);
 app.use("/api/expenses", expensesRouter);
 app.use("/api/financials", financialsRouter);
+app.use("/api/messages", messagesRouter);
 
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 

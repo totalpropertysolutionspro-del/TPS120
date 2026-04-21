@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Building2, Plus, X, Wrench, Users, FileText, Calendar, HardHat } from "lucide-react";
+import { ArrowLeft, Building2, Plus, X, Wrench, Users, FileText, Calendar, HardHat, Send, CheckSquare, Square } from "lucide-react";
+import emailjs from "@emailjs/browser";
 import ContactButtons from "./ContactButtons";
 import {
   getProperty, createTenant, updateTenant, deleteTenant,
   createWorkOrder, updateWorkOrder, deleteWorkOrder,
   createStaffAssignment, deleteStaffAssignment, getStaff,
   uploadFile, deleteFile,
-  getExpenses, createExpense, deleteExpense, getFinancials,
+  getExpenses, createExpense, deleteExpense, getFinancials, sendSMS, logMessage,
   type PropertyDetail, type Tenant, type WorkOrder, type Staff, type StaffAssignment, type FileRecord,
   type Expense, type FinancialWO,
 } from "../api/client";
@@ -36,6 +37,7 @@ export default function PropertyHub({ propertyId, navigate }: Props) {
   const [expensesByWO, setExpensesByWO] = useState<Record<string, Expense[]>>({});
   const [showAddExpense, setShowAddExpense] = useState<string | null>(null); // workOrderId
   const [expenseForm, setExpenseForm] = useState({ description: "", amount: "" });
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
 
   const [tenantForm, setTenantForm] = useState({ name: "", email: "", phone: "", unit: "", leaseStart: "", leaseEnd: "", rentAmount: "" });
   const [woForm, setWoForm] = useState({ title: "", priority: "medium", status: "open", type: "maintenance", notes: "", dueDate: "", price: "" });
@@ -198,6 +200,13 @@ export default function PropertyHub({ propertyId, navigate }: Props) {
                   {property.client.name}
                 </span>
               )}
+              <button
+                onClick={() => setShowNoticeModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Send size={13} />
+                Send Notice
+              </button>
             </div>
           </div>
         </div>
@@ -583,6 +592,171 @@ export default function PropertyHub({ propertyId, navigate }: Props) {
           </div>
         </div>
       )}
+
+      {showNoticeModal && (
+        <NoticeModal
+          property={property}
+          onClose={() => setShowNoticeModal(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+const EMAILJS_SERVICE_ID_HUB = "service_aup2x7q";
+const EMAILJS_TEMPLATE_ID_HUB = "template_7yh68xt";
+const EMAILJS_PUBLIC_KEY_HUB = "w6gNA5WCMSUL694vt";
+const FROM_EMAIL_HUB = "totalpropertysolutionspro@totalpropertysolutions.net";
+const FROM_NAME_HUB = "Total Property Solutions Pro LLC";
+
+const HUB_TEMPLATES = [
+  { label: "Entry Notice", subject: "Property Entry Notice – TPS Pro", body: "Hi {name}, this is TPS Pro. We'll be servicing your unit at {property} on [date]. Please ensure access. Thank you." },
+  { label: "Work Completed", subject: "Work Completed at Your Unit", body: "Hi {name}, work has been completed at your unit {unit} at {property}. Thank you for your business." },
+  { label: "Rent Reminder", subject: "Rent Payment Reminder", body: "Hi {name}, this is a friendly reminder that your rent payment is due soon. – TPS Pro" },
+];
+
+function NoticeModal({ property, onClose }: { property: PropertyDetail; onClose: () => void }) {
+  const [msgType, setMsgType] = useState<"sms" | "email" | "both">("both");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(property.tenants.map((t) => t.id)));
+  const [subject, setSubject] = useState("Property Entry Notice – TPS Pro");
+  const [body, setBody] = useState("Hi {name}, this is TPS Pro. We'll be servicing your unit at {property} on [date]. Please ensure access. Thank you.");
+  const [sending, setSending] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+
+  const fill = (text: string, name: string, unit: string) =>
+    text.replace(/{name}/g, name).replace(/{unit}/g, unit).replace(/{property}/g, property.name);
+
+  const selected = property.tenants.filter((t) => selectedIds.has(t.id));
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selected.length === 0 || !body) return;
+    setSending(true); setError(""); setSuccess("");
+    try {
+      if (msgType === "email" || msgType === "both") {
+        for (const t of selected) {
+          if (!t.email) continue;
+          await emailjs.send(EMAILJS_SERVICE_ID_HUB, EMAILJS_TEMPLATE_ID_HUB, {
+            to_email: t.email,
+            to_name: t.name,
+            from_name: FROM_NAME_HUB,
+            reply_to: FROM_EMAIL_HUB,
+            subject: fill(subject, t.name, t.unit),
+            name: FROM_NAME_HUB,
+            time: new Date().toLocaleString(),
+            message: fill(body, t.name, t.unit),
+          }, EMAILJS_PUBLIC_KEY_HUB);
+        }
+      }
+      let smsErr = "";
+      if (msgType === "sms" || msgType === "both") {
+        const phones = selected.filter((t) => t.phone).map((t) => t.phone);
+        if (phones.length > 0) {
+          try {
+            await sendSMS({
+              phones,
+              body: selected[0] ? fill(body, selected[0].name, selected[0].unit) : body,
+              recipients: selected,
+              propertyId: property.id,
+              propertyName: property.name,
+            });
+          } catch (err: any) {
+            smsErr = err?.response?.data?.setup || "SMS failed — add Twilio credentials in Render";
+          }
+        }
+      }
+      await logMessage({
+        type: msgType,
+        recipients: JSON.stringify(selected.map((t) => ({ name: t.name, email: t.email, phone: t.phone }))),
+        subject: selected[0] ? fill(subject, selected[0].name, selected[0].unit) : subject,
+        body: selected[0] ? fill(body, selected[0].name, selected[0].unit) : body,
+        propertyId: property.id,
+        propertyName: property.name,
+        status: "sent",
+      });
+      if (smsErr) setError(`SMS: ${smsErr}`);
+      setSuccess(`Notice sent to ${selected.length} tenant${selected.length !== 1 ? "s" : ""}!`);
+      setTimeout(() => onClose(), 2500);
+    } catch (err: any) {
+      setError(err?.text || err?.message || "Send failed");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b">
+          <h2 className="font-bold text-gray-800">Send Notice — {property.name}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+        </div>
+        <form onSubmit={handleSend} className="p-5 space-y-4">
+          {/* Type */}
+          <div className="flex gap-2">
+            {(["sms", "email", "both"] as const).map((t) => (
+              <button key={t} type="button" onClick={() => setMsgType(t)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${msgType === t ? "bg-blue-600 text-white border-blue-600" : "text-gray-600 border-gray-300 hover:border-blue-400"}`}>
+                {t === "sms" ? "SMS" : t === "email" ? "Email" : "Both"}
+              </button>
+            ))}
+          </div>
+          {(msgType === "sms" || msgType === "both") && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+              SMS requires Twilio credentials in Render environment variables.
+            </p>
+          )}
+          {/* Recipients */}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-sm font-medium text-gray-700">Tenants ({selected.length} selected)</label>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setSelectedIds(new Set(property.tenants.map((t) => t.id)))} className="text-xs text-blue-600">All</button>
+                <button type="button" onClick={() => setSelectedIds(new Set())} className="text-xs text-gray-500">None</button>
+              </div>
+            </div>
+            <div className="border rounded-lg divide-y max-h-36 overflow-y-auto">
+              {property.tenants.length === 0 && <p className="text-xs text-gray-400 p-3">No tenants at this property.</p>}
+              {property.tenants.map((t) => (
+                <label key={t.id} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setSelectedIds((prev) => { const n = new Set(prev); n.has(t.id) ? n.delete(t.id) : n.add(t.id); return n; })}>
+                  {selectedIds.has(t.id) ? <CheckSquare size={14} className="text-blue-600" /> : <Square size={14} className="text-gray-400" />}
+                  <span className="text-sm">{t.name}</span>
+                  <span className="text-xs text-gray-400">Unit {t.unit}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          {/* Templates */}
+          <div className="flex flex-wrap gap-1.5">
+            {HUB_TEMPLATES.map((tpl) => (
+              <button key={tpl.label} type="button"
+                onClick={() => { setSubject(tpl.subject); setBody(tpl.body); }}
+                className="px-2.5 py-1 text-xs rounded-full border border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600">
+                {tpl.label}
+              </button>
+            ))}
+          </div>
+          {(msgType === "email" || msgType === "both") && (
+            <input type="text" className="w-full border rounded-lg px-3 py-2 text-sm" value={subject}
+              onChange={(e) => setSubject(e.target.value)} placeholder="Subject" />
+          )}
+          <textarea rows={4} required className="w-full border rounded-lg px-3 py-2 text-sm"
+            value={body} onChange={(e) => setBody(e.target.value)}
+            placeholder="Message… use {name}, {unit}, {property}" />
+          {success && <div className="p-3 bg-green-100 text-green-700 rounded text-sm">{success}</div>}
+          {error && <div className="p-3 bg-red-100 text-red-700 rounded text-sm">{error}</div>}
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+            <button type="submit" disabled={sending || selected.length === 0 || !body}
+              className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium">
+              <Send size={14} />
+              {sending ? "Sending…" : `Send to ${selected.length}`}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
