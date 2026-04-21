@@ -4,32 +4,22 @@ import * as schema from "./schema.js";
 import { writeFileSync } from "fs";
 import { mkdir } from "fs/promises";
 
-// Use Turso cloud database for PERMANENT data storage
-// Falls back to local SQLite for development if no cloud URL set
 const dbUrl = process.env.TURSO_DATABASE_URL || "file:./data/tps.db";
 const authToken = process.env.TURSO_AUTH_TOKEN;
 
 if (!process.env.TURSO_DATABASE_URL) {
-  // Local dev fallback - ensure data directory exists
   await mkdir("./data", { recursive: true });
-  console.log("Using LOCAL SQLite database (data will not persist on Vercel)");
+  console.log("Using LOCAL SQLite database");
 } else {
-  console.log("Connected to Turso cloud database (data is PERMANENT)");
+  console.log("Connected to Turso cloud database");
 }
 
-const sqlite = createClient({
-  url: dbUrl,
-  authToken: authToken,
-});
-
+const sqlite = createClient({ url: dbUrl, authToken });
 export const db = drizzle(sqlite, { schema });
 
-// Auto-backup database to JSON on startup
 export async function backupDatabase() {
-  const backupPath = "backup.json";
-
   try {
-    const [properties, tenants, workOrders, invoices, vendors, contacts, entityNotes, calendarEvents, reminders, notifications] = await Promise.all([
+    const [properties, tenants, workOrders, invoices, vendors, contacts, entityNotes, calendarEvents, reminders, notifications, clients, staff, staffAssignments, expenses] = await Promise.all([
       db.select().from(schema.properties),
       db.select().from(schema.tenants),
       db.select().from(schema.workOrders),
@@ -40,37 +30,111 @@ export async function backupDatabase() {
       db.select().from(schema.calendarEvents),
       db.select().from(schema.reminders),
       db.select().from(schema.notifications),
+      db.select().from(schema.clients),
+      db.select().from(schema.staff),
+      db.select().from(schema.staffAssignments),
+      db.select().from(schema.expenses),
     ]);
-
-    const backup = {
-      timestamp: new Date().toISOString(),
-      properties,
-      tenants,
-      workOrders,
-      invoices,
-      vendors,
-      contacts,
-      notes: entityNotes,
-      calendarEvents,
-      reminders,
-      notifications,
-    };
-
-    writeFileSync(backupPath, JSON.stringify(backup, null, 2));
+    writeFileSync("backup.json", JSON.stringify({ timestamp: new Date().toISOString(), properties, tenants, workOrders, invoices, vendors, contacts, notes: entityNotes, calendarEvents, reminders, notifications, clients, staff, staffAssignments, expenses }, null, 2));
     console.log("Database backed up to backup.json");
   } catch (error) {
     console.error("Backup failed:", error);
   }
 }
 
-// Initialize database tables - ALWAYS runs CREATE TABLE IF NOT EXISTS
-// This ensures tables exist in Turso cloud on first deploy
+async function tryAlter(sql: string) {
+  try { await sqlite.execute(sql); } catch (_) { /* column already exists */ }
+}
+
+async function seedClients() {
+  try {
+    const result = await sqlite.execute("SELECT COUNT(*) as cnt FROM clients");
+    const count = Number(result.rows[0][0]);
+    if (count > 0) return;
+
+    console.log("Seeding clients...");
+    const now = new Date().toISOString();
+    const clientList = [
+      { id: "c1-rpm",     name: "Real Property Management", type: "management_company" },
+      { id: "c2-wjw",     name: "WJW Management",           type: "management_company" },
+      { id: "c3-fl",      name: "First Light",               type: "management_company" },
+      { id: "c4-sonoco",  name: "Sonoco Products",           type: "direct" },
+      { id: "c5-blizzard",name: "Blizzard Albany",           type: "direct" },
+      { id: "c6-crunch",  name: "Crunch Fitness Troy",       type: "direct" },
+    ];
+
+    for (const c of clientList) {
+      await sqlite.execute({
+        sql: "INSERT INTO clients (id, name, type, created_at) VALUES (?, ?, ?, ?)",
+        args: [c.id, c.name, c.type, now],
+      });
+    }
+
+    // Link properties to clients by name pattern + set propertyType
+    const linkMap: Array<{ pattern: string; clientId: string; propertyType: string }> = [
+      { pattern: "%120 Hoosick%",    clientId: "c1-rpm",     propertyType: "residential" },
+      { pattern: "%Patten%",         clientId: "c1-rpm",     propertyType: "residential" },
+      { pattern: "%Quail%",          clientId: "c2-wjw",     propertyType: "residential" },
+      { pattern: "%Fourth%",         clientId: "c2-wjw",     propertyType: "residential" },
+      { pattern: "%348%",            clientId: "c2-wjw",     propertyType: "residential" },
+      { pattern: "%Blizzard%",       clientId: "c5-blizzard",propertyType: "commercial"  },
+      { pattern: "%Crunch%",         clientId: "c6-crunch",  propertyType: "commercial"  },
+      { pattern: "%Sonoco%",         clientId: "c4-sonoco",  propertyType: "commercial"  },
+    ];
+
+    for (const { pattern, clientId, propertyType } of linkMap) {
+      await sqlite.execute({
+        sql: "UPDATE properties SET client_id = ?, property_type = ? WHERE name LIKE ? AND (client_id IS NULL OR client_id = '')",
+        args: [clientId, propertyType, pattern],
+      });
+    }
+    console.log("Clients seeded successfully");
+  } catch (error) {
+    console.error("Seed failed:", error);
+  }
+}
+
 export async function initializeDatabase() {
   try {
     console.log("Ensuring all tables exist...");
 
-    // Create tables using batch operations
     const statements = [
+      `CREATE TABLE IF NOT EXISTS clients (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        contact_name TEXT,
+        contact_email TEXT,
+        contact_phone TEXT,
+        notes TEXT,
+        created_at TEXT
+      )`,
+      `CREATE TABLE IF NOT EXISTS staff (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        role TEXT,
+        phone TEXT,
+        email TEXT,
+        pay_rate REAL,
+        active INTEGER DEFAULT 1
+      )`,
+      `CREATE TABLE IF NOT EXISTS staff_assignments (
+        id TEXT PRIMARY KEY,
+        property_id TEXT,
+        staff_id TEXT,
+        date TEXT NOT NULL,
+        hours_worked REAL,
+        pay_rate REAL,
+        notes TEXT,
+        created_at TEXT
+      )`,
+      `CREATE TABLE IF NOT EXISTS expenses (
+        id TEXT PRIMARY KEY,
+        work_order_id TEXT,
+        description TEXT NOT NULL,
+        amount REAL NOT NULL,
+        created_at TEXT
+      )`,
       `CREATE TABLE IF NOT EXISTS properties (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -197,14 +261,27 @@ export async function initializeDatabase() {
         message TEXT NOT NULL,
         is_read INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL
-      )`
+      )`,
     ];
 
-    for (const statement of statements) {
-      await sqlite.execute(statement);
+    for (const sql of statements) {
+      await sqlite.execute(sql);
     }
 
+    // Migrate: add new columns to existing properties table (safe — ignore if already exists)
+    await tryAlter("ALTER TABLE properties ADD COLUMN contact_name TEXT");
+    await tryAlter("ALTER TABLE properties ADD COLUMN email TEXT");
+    await tryAlter("ALTER TABLE properties ADD COLUMN phone TEXT");
+    await tryAlter("ALTER TABLE properties ADD COLUMN client_id TEXT");
+    await tryAlter("ALTER TABLE properties ADD COLUMN property_type TEXT DEFAULT 'residential'");
+    await tryAlter("ALTER TABLE properties ADD COLUMN notes TEXT");
+    await tryAlter("ALTER TABLE work_orders ADD COLUMN price REAL");
+    await tryAlter("ALTER TABLE work_orders ADD COLUMN paid INTEGER DEFAULT 0");
+    await tryAlter("ALTER TABLE work_orders ADD COLUMN paid_at TEXT");
+
     console.log("All tables verified/created successfully");
+
+    await seedClients();
   } catch (error) {
     console.error("Database initialization failed:", error);
     throw error;

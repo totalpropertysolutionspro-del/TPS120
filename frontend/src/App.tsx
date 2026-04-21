@@ -1,69 +1,65 @@
 import { useState } from "react";
-import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
+import Navbar from "./components/Navbar";
 import Dashboard from "./components/Dashboard";
 import Properties from "./components/Properties";
-import Tenants from "./components/Tenants";
+import PropertyHub from "./components/PropertyHub";
+import Clients from "./components/Clients";
 import WorkOrders from "./components/WorkOrders";
-import Invoices from "./components/Invoices";
-import Vendors from "./components/Vendors";
-import Contacts from "./components/Contacts";
-import Calendar from "./components/Calendar";
+import Staff from "./components/Staff";
 import Files from "./components/Files";
-import Reminders from "./components/Reminders";
-import Emails from "./components/Emails";
+import Financials from "./components/Financials";
 
-type Page =
-  | "dashboard"
-  | "properties"
-  | "tenants"
-  | "tickets"
-  | "invoices"
-  | "vendors"
-  | "contacts"
-  | "calendar"
-  | "files"
-  | "reminders"
-  | "emails";
+export type Page = "dashboard" | "properties" | "property-hub" | "clients" | "work-orders" | "staff" | "files" | "financials";
+
+export interface NavState {
+  page: Page;
+  propertyId?: string;
+  clientId?: string;
+}
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<Page>("dashboard");
+  const [nav, setNav] = useState<NavState>({ page: "dashboard" });
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const navigate = (page: Page, extra?: { propertyId?: string; clientId?: string }) => {
+    setNav({ page, ...extra });
+  };
 
   const renderPage = () => {
-    switch (currentPage) {
+    switch (nav.page) {
       case "dashboard":
-        return <Dashboard />;
+        return <Dashboard navigate={navigate} />;
       case "properties":
-        return <Properties />;
-      case "tenants":
-        return <Tenants />;
-      case "tickets":
-        return <WorkOrders />;
-      case "invoices":
-        return <Invoices />;
-      case "vendors":
-        return <Vendors />;
-      case "contacts":
-        return <Contacts />;
-      case "calendar":
-        return <Calendar />;
+        return <Properties navigate={navigate} />;
+      case "property-hub":
+        return <PropertyHub propertyId={nav.propertyId!} navigate={navigate} />;
+      case "clients":
+        return <Clients navigate={navigate} />;
+      case "work-orders":
+        return <WorkOrders navigate={navigate} propertyId={nav.propertyId} />;
+      case "staff":
+        return <Staff />;
       case "files":
         return <Files />;
-      case "reminders":
-        return <Reminders />;
-      case "emails":
-        return <Emails />;
+      case "financials":
+        return <Financials />;
       default:
-        return <Dashboard />;
+        return <Dashboard navigate={navigate} />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
-      <div className="flex-1 flex flex-col">
-        <Navbar />
-        <main className="flex-1 overflow-auto p-6">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <Sidebar
+        currentPage={nav.page}
+        navigate={navigate}
+        isOpen={sidebarOpen}
+        setIsOpen={setSidebarOpen}
+      />
+      <div className="flex-1 flex flex-col min-w-0">
+        <Navbar navigate={navigate} onMenuToggle={() => setSidebarOpen(o => !o)} />
+        <main className="flex-1 overflow-auto p-4 md:p-6">
           {renderPage()}
         </main>
       </div>

@@ -53,6 +53,7 @@ router.post("/", async (req: Request, res: Response) => {
       dueDate,
       contactPhone,
       contactEmail,
+      price,
     } = req.body;
 
     if (!title || !propertyId || !priority) {
@@ -75,6 +76,9 @@ router.post("/", async (req: Request, res: Response) => {
       dueDate: dueDate || null,
       contactPhone: contactPhone || null,
       contactEmail: contactEmail || null,
+      price: price ? parseFloat(price) : null,
+      paid: 0,
+      paidAt: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -125,6 +129,7 @@ router.put("/:id", async (req: Request, res: Response) => {
       dueDate,
       contactPhone,
       contactEmail,
+      price,
     } = req.body;
 
     const existingWorkOrder = await db
@@ -150,6 +155,7 @@ router.put("/:id", async (req: Request, res: Response) => {
       ...(dueDate !== undefined && { dueDate }),
       ...(contactPhone !== undefined && { contactPhone }),
       ...(contactEmail !== undefined && { contactEmail }),
+      ...(price !== undefined && { price: price ? parseFloat(price) : null }),
       updatedAt: new Date().toISOString(),
     };
 

@@ -37,7 +37,7 @@ router.get("/:id", async (req, res) => {
 // Create work order
 router.post("/", async (req, res) => {
     try {
-        const { title, propertyId, priority, urgency, type, status, assignedVendorId, notes, dueDate, contactPhone, contactEmail, } = req.body;
+        const { title, propertyId, priority, urgency, type, status, assignedVendorId, notes, dueDate, contactPhone, contactEmail, price, } = req.body;
         if (!title || !propertyId || !priority) {
             return res.status(400).json({ error: "Missing required fields" });
         }
@@ -56,6 +56,9 @@ router.post("/", async (req, res) => {
             dueDate: dueDate || null,
             contactPhone: contactPhone || null,
             contactEmail: contactEmail || null,
+            price: price ? parseFloat(price) : null,
+            paid: 0,
+            paidAt: null,
             createdAt: now,
             updatedAt: now,
         };
@@ -90,7 +93,7 @@ router.post("/", async (req, res) => {
 // Update work order
 router.put("/:id", async (req, res) => {
     try {
-        const { title, propertyId, priority, urgency, type, status, assignedVendorId, notes, dueDate, contactPhone, contactEmail, } = req.body;
+        const { title, propertyId, priority, urgency, type, status, assignedVendorId, notes, dueDate, contactPhone, contactEmail, price, } = req.body;
         const existingWorkOrder = await db
             .select()
             .from(workOrders)
@@ -112,6 +115,7 @@ router.put("/:id", async (req, res) => {
             ...(dueDate !== undefined && { dueDate }),
             ...(contactPhone !== undefined && { contactPhone }),
             ...(contactEmail !== undefined && { contactEmail }),
+            ...(price !== undefined && { price: price ? parseFloat(price) : null }),
             updatedAt: new Date().toISOString(),
         };
         // Create notification if status changed
