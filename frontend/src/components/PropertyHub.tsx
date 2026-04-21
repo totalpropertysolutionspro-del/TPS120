@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, Building2, Plus, X, Wrench, Users, FileText, Calendar, HardHat } from "lucide-react";
+import ContactButtons from "./ContactButtons";
 import {
   getProperty, createTenant, updateTenant, deleteTenant,
   createWorkOrder, updateWorkOrder, deleteWorkOrder,
@@ -243,9 +244,14 @@ export default function PropertyHub({ propertyId, navigate }: Props) {
                 <h3 className="text-sm font-semibold text-gray-600 mb-2">Client</h3>
                 <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
                   <p className="font-medium text-gray-800">{property.client.name}</p>
-                  {property.client.contactName && <p className="text-gray-500">Contact: {property.client.contactName}</p>}
-                  {property.client.contactEmail && <p className="text-gray-500">{property.client.contactEmail}</p>}
-                  {property.client.contactPhone && <p className="text-gray-500">{property.client.contactPhone}</p>}
+                  {property.client.contactName && <p className="text-gray-500 text-sm">Contact: {property.client.contactName}</p>}
+                  {(property.client.contactEmail || property.client.contactPhone) && (
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      {property.client.contactEmail && <span className="text-xs text-gray-500">{property.client.contactEmail}</span>}
+                      {property.client.contactPhone && <span className="text-xs text-gray-500">{property.client.contactPhone}</span>}
+                      <ContactButtons email={property.client.contactEmail} phone={property.client.contactPhone} />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -266,16 +272,22 @@ export default function PropertyHub({ propertyId, navigate }: Props) {
             ) : (
               <div className="space-y-2">
                 {property.tenants.map(t => (
-                  <div key={t.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-sm text-gray-800">{t.name}</p>
-                      <p className="text-xs text-gray-500">Unit {t.unit} • {t.phone} • {t.email}</p>
+                  <div key={t.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-sm text-gray-800">{t.name}</p>
+                        <span className="text-xs text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">Unit {t.unit}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">{[t.phone, t.email].filter(Boolean).join(" • ")}</p>
                       <p className="text-xs text-gray-400 mt-0.5">Lease: {t.leaseStart} – {t.leaseEnd}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => { setEditTenant(t); setTenantForm({ name: t.name, email: t.email, phone: t.phone, unit: t.unit, leaseStart: t.leaseStart, leaseEnd: t.leaseEnd, rentAmount: String(t.rentAmount || "") }); }}
-                        className="text-xs px-2 py-1 border border-gray-200 rounded text-gray-600 hover:bg-gray-100">Edit</button>
-                      <button onClick={() => handleDeleteTenant(t.id)} className="text-xs px-2 py-1 border border-red-200 rounded text-red-600 hover:bg-red-50">Delete</button>
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <ContactButtons email={t.email} phone={t.phone} />
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => { setEditTenant(t); setTenantForm({ name: t.name, email: t.email, phone: t.phone, unit: t.unit, leaseStart: t.leaseStart, leaseEnd: t.leaseEnd, rentAmount: String(t.rentAmount || "") }); }}
+                          className="text-xs px-2 py-1 border border-gray-200 rounded text-gray-600 hover:bg-gray-100">Edit</button>
+                        <button onClick={() => handleDeleteTenant(t.id)} className="text-xs px-2 py-1 border border-red-200 rounded text-red-600 hover:bg-red-50">Del</button>
+                      </div>
                     </div>
                   </div>
                 ))}

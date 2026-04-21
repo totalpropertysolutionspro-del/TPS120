@@ -1,6 +1,46 @@
 import { useEffect, useState } from "react";
 import { Plus, X, HardHat, Calendar } from "lucide-react";
 import { getStaff, createStaff, updateStaff, deleteStaff, getStaffAssignments, getProperties, deleteStaffAssignment, type Staff, type StaffAssignment, type Property } from "../api/client";
+import ContactButtons from "./ContactButtons";
+
+type FormState = { name: string; role: string; phone: string; email: string; payRate: string };
+
+interface StaffModalProps {
+  editStaff: Staff | null;
+  form: FormState;
+  setForm: React.Dispatch<React.SetStateAction<FormState>>;
+  onClose: () => void;
+  handleEdit: () => void;
+  handleAdd: () => void;
+}
+
+function StaffModal({ editStaff, form, setForm, onClose, handleEdit, handleAdd }: StaffModalProps) {
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b">
+          <h2 className="font-semibold">{editStaff ? "Edit Staff Member" : "Add Staff Member"}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+        </div>
+        <div className="p-5 space-y-3">
+          <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name *" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="Role (e.g. Cleaner, Supervisor)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <div className="grid grid-cols-2 gap-3">
+            <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone" type="tel" className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="Email" type="email" className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <input value={form.payRate} onChange={e => setForm(f => ({ ...f, payRate: e.target.value }))} placeholder="Pay rate ($/hr)" type="number" step="0.01" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div className="flex gap-3 px-5 pb-5">
+          <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm">Cancel</button>
+          <button onClick={editStaff ? handleEdit : handleAdd} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+            {editStaff ? "Save Changes" : "Add Staff Member"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function StaffPage() {
   const [staffList, setStaffList] = useState<Staff[]>([]);
@@ -10,7 +50,7 @@ export default function StaffPage() {
   const [tab, setTab] = useState<"roster" | "log" | "week">("roster");
   const [showAdd, setShowAdd] = useState(false);
   const [editStaff, setEditStaff] = useState<Staff | null>(null);
-  const [form, setForm] = useState({ name: "", role: "", phone: "", email: "", payRate: "" });
+  const [form, setForm] = useState<FormState>({ name: "", role: "", phone: "", email: "", payRate: "" });
 
   const load = () => {
     setLoading(true);
@@ -58,6 +98,8 @@ export default function StaffPage() {
     try { await deleteStaffAssignment(id); load(); } catch (e) { console.error(e); }
   };
 
+  const handleClose = () => { setShowAdd(false); setEditStaff(null); resetForm(); };
+
   // Weekly view: current week Mon–Sun
   const today = new Date();
   const monday = new Date(today);
@@ -71,32 +113,6 @@ export default function StaffPage() {
   if (loading) return (
     <div className="flex items-center justify-center h-64">
       <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-    </div>
-  );
-
-  const StaffModal = () => (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b">
-          <h2 className="font-semibold">{editStaff ? "Edit Staff Member" : "Add Staff Member"}</h2>
-          <button onClick={() => { setShowAdd(false); setEditStaff(null); resetForm(); }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
-        </div>
-        <div className="p-5 space-y-3">
-          <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Full name *" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          <input value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))} placeholder="Role (e.g. Cleaner, Supervisor)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          <div className="grid grid-cols-2 gap-3">
-            <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="Phone" type="tel" className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="Email" type="email" className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          </div>
-          <input value={form.payRate} onChange={e => setForm(f => ({ ...f, payRate: e.target.value }))} placeholder="Pay rate ($/hr)" type="number" step="0.01" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        </div>
-        <div className="flex gap-3 px-5 pb-5">
-          <button onClick={() => { setShowAdd(false); setEditStaff(null); resetForm(); }} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm">Cancel</button>
-          <button onClick={editStaff ? handleEdit : handleAdd} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
-            {editStaff ? "Save Changes" : "Add Staff Member"}
-          </button>
-        </div>
-      </div>
     </div>
   );
 
@@ -134,7 +150,7 @@ export default function StaffPage() {
                   <tr className="bg-gray-50 text-left text-xs text-gray-500 border-b border-gray-100">
                     <th className="px-4 py-3 font-semibold">Name</th>
                     <th className="px-4 py-3 font-semibold">Role</th>
-                    <th className="px-4 py-3 font-semibold hidden sm:table-cell">Phone</th>
+                    <th className="px-4 py-3 font-semibold hidden sm:table-cell">Contact</th>
                     <th className="px-4 py-3 font-semibold hidden md:table-cell">Pay Rate</th>
                     <th className="px-4 py-3 font-semibold">Status</th>
                     <th className="px-4 py-3 font-semibold">Actions</th>
@@ -145,7 +161,9 @@ export default function StaffPage() {
                     <tr key={s.id} className={`hover:bg-gray-50 ${!s.active ? "opacity-60" : ""}`}>
                       <td className="px-4 py-3 font-medium text-gray-800">{s.name}</td>
                       <td className="px-4 py-3 text-gray-500">{s.role || "—"}</td>
-                      <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{s.phone || "—"}</td>
+                      <td className="px-4 py-3 hidden sm:table-cell">
+                        <ContactButtons email={s.email} phone={s.phone} />
+                      </td>
                       <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{s.payRate ? `$${s.payRate}/hr` : "—"}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${s.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
@@ -276,7 +294,16 @@ export default function StaffPage() {
         </div>
       )}
 
-      {(showAdd || editStaff) && <StaffModal />}
+      {(showAdd || editStaff) && (
+        <StaffModal
+          editStaff={editStaff}
+          form={form}
+          setForm={setForm}
+          onClose={handleClose}
+          handleEdit={handleEdit}
+          handleAdd={handleAdd}
+        />
+      )}
     </div>
   );
 }
