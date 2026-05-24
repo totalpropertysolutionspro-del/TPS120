@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, X, Wrench, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, X, Wrench, ChevronDown, ChevronUp, Pencil } from "lucide-react";
 import { getWorkOrders, getProperties, createWorkOrder, updateWorkOrder, deleteWorkOrder, type WorkOrder, type Property } from "../api/client";
 import type { Page } from "../App";
 
@@ -8,18 +8,21 @@ interface Props {
   propertyId?: string;
 }
 
+const EMPTY_FORM = (propId = "") => ({ title: "", propertyId: propId, priority: "medium", status: "open", type: "maintenance", notes: "", dueDate: "", price: "" });
+
 export default function WorkOrders({ navigate, propertyId: filterPropertyId }: Props) {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [showAdd, setShowAdd] = useState(false);
+  const [editWO, setEditWO] = useState<WorkOrder | null>(null);
 
-  // Filters
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [filterProp, setFilterProp] = useState<string>(filterPropertyId || "");
 
-  const [form, setForm] = useState({ title: "", propertyId: filterPropertyId || "", priority: "medium", status: "open", type: "maintenance", notes: "", dueDate: "", price: "" });
+  const [form, setForm] = useState(EMPTY_FORM(filterPropertyId));
+  const [editForm, setEditForm] = useState(EMPTY_FORM());
 
   const load = () => {
     setLoading(true);
@@ -44,7 +47,29 @@ export default function WorkOrders({ navigate, propertyId: filterPropertyId }: P
     try {
       await createWorkOrder({ ...form, price: form.price ? parseFloat(form.price) : undefined } as any);
       load(); setShowAdd(false);
-      setForm({ title: "", propertyId: filterPropertyId || "", priority: "medium", status: "open", type: "maintenance", notes: "", dueDate: "", price: "" });
+      setForm(EMPTY_FORM(filterPropertyId));
+    } catch (e) { console.error(e); }
+  };
+
+  const openEdit = (wo: WorkOrder) => {
+    setEditWO(wo);
+    setEditForm({
+      title: wo.title,
+      propertyId: wo.propertyId,
+      priority: wo.priority,
+      status: wo.status,
+      type: wo.type || "maintenance",
+      notes: wo.notes || "",
+      dueDate: wo.dueDate ? wo.dueDate.split("T")[0] : "",
+      price: (wo as any).price ? String((wo as any).price) : "",
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editWO) return;
+    try {
+      await updateWorkOrder(editWO.id, { ...editForm, price: editForm.price ? parseFloat(editForm.price) : 0 } as any);
+      load(); setEditWO(null);
     } catch (e) { console.error(e); }
   };
 
@@ -66,6 +91,41 @@ export default function WorkOrders({ navigate, propertyId: filterPropertyId }: P
     const map: Record<string, string> = { urgent: "bg-red-500 text-white", high: "bg-orange-400 text-white", medium: "bg-yellow-400 text-gray-800", low: "bg-gray-200 text-gray-600" };
     return <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${map[p] || "bg-gray-200 text-gray-600"}`}>{p}</span>;
   };
+
+  const WOForm = ({ f, setF }: { f: typeof form; setF: typeof setForm }) => (
+    <div className="p-5 space-y-3">
+      <input value={f.title} onChange={e => setF(x => ({ ...x, title: e.target.value }))} placeholder="Title *" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <select value={f.propertyId} onChange={e => setF(x => ({ ...x, propertyId: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Select property *</option>
+        {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+      </select>
+      <div className="grid grid-cols-2 gap-3">
+        <select value={f.priority} onChange={e => setF(x => ({ ...x, priority: e.target.value }))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="urgent">Urgent</option>
+        </select>
+        <select value={f.type} onChange={e => setF(x => ({ ...x, type: e.target.value }))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="maintenance">Maintenance</option>
+          <option value="repair">Repair</option>
+          <option value="inspection">Inspection</option>
+          <option value="cleaning">Cleaning</option>
+          <option value="emergency">Emergency</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <select value={f.status} onChange={e => setF(x => ({ ...x, status: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="open">Open</option>
+        <option value="in_progress">In Progress</option>
+        <option value="completed">Completed</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <input value={f.dueDate} onChange={e => setF(x => ({ ...x, dueDate: e.target.value }))} type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <input value={f.price} onChange={e => setF(x => ({ ...x, price: e.target.value }))} type="number" step="0.01" min="0" placeholder="Price charged to client ($)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      <textarea value={f.notes} onChange={e => setF(x => ({ ...x, notes: e.target.value }))} placeholder="Notes" rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
+    </div>
+  );
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -122,6 +182,11 @@ export default function WorkOrders({ navigate, propertyId: filterPropertyId }: P
                     <span className="font-semibold text-sm text-gray-800">{wo.title}</span>
                     {priorityBadge(wo.priority)}
                     {wo.type && <span className="text-xs text-gray-500 capitalize">{wo.type}</span>}
+                    {(wo as any).price > 0 && (
+                      <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                        ${Number((wo as any).price).toLocaleString()}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-gray-500 mt-0.5">
                     {propMap[wo.propertyId] || "Unknown"} • {new Date(wo.createdAt).toLocaleDateString()}
@@ -147,6 +212,9 @@ export default function WorkOrders({ navigate, propertyId: filterPropertyId }: P
                     {wo.status !== "cancelled" && wo.status !== "completed" && (
                       <button onClick={() => handleStatusChange(wo, "cancelled")} className="text-xs px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 font-medium">Cancel</button>
                     )}
+                    <button onClick={(e) => { e.stopPropagation(); openEdit(wo); }} className="text-xs px-3 py-1.5 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 font-medium flex items-center gap-1">
+                      <Pencil size={11} /> Edit
+                    </button>
                     {navigate && (
                       <button onClick={() => navigate("property-hub", { propertyId: wo.propertyId })} className="text-xs px-3 py-1.5 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 font-medium">View Property</button>
                     )}
@@ -159,43 +227,35 @@ export default function WorkOrders({ navigate, propertyId: filterPropertyId }: P
         </div>
       )}
 
-      {/* Add Work Order Modal */}
+      {/* Add Modal */}
       {showAdd && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl w-full max-w-md shadow-xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-4 border-b sticky top-0 bg-white">
               <h2 className="font-semibold">Add Work Order</h2>
               <button onClick={() => setShowAdd(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-            <div className="p-5 space-y-3">
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Title *" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <select value={form.propertyId} onChange={e => setForm(f => ({ ...f, propertyId: e.target.value }))} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Select property *</option>
-                {properties.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-              <div className="grid grid-cols-2 gap-3">
-                <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="urgent">Urgent</option>
-                </select>
-                <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))} className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="maintenance">Maintenance</option>
-                  <option value="repair">Repair</option>
-                  <option value="inspection">Inspection</option>
-                  <option value="cleaning">Cleaning</option>
-                  <option value="emergency">Emergency</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-              <input value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} type="date" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notes" rows={2} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
-              <input value={form.price} onChange={e => setForm(f => ({ ...f, price: e.target.value }))} type="number" step="0.01" min="0" placeholder="Price charged to client ($)" className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
+            <WOForm f={form} setF={setForm} />
             <div className="flex gap-3 px-5 pb-5">
               <button onClick={() => setShowAdd(false)} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm">Cancel</button>
               <button onClick={handleAdd} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Add Work Order</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editWO && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-5 py-4 border-b sticky top-0 bg-white">
+              <h2 className="font-semibold">Edit Work Order</h2>
+              <button onClick={() => setEditWO(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+            <WOForm f={editForm} setF={setEditForm} />
+            <div className="flex gap-3 px-5 pb-5">
+              <button onClick={() => setEditWO(null)} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm">Cancel</button>
+              <button onClick={handleSaveEdit} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">Save Changes</button>
             </div>
           </div>
         </div>

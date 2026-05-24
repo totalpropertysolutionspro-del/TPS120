@@ -11,7 +11,7 @@ import Files from "./components/Files";
 import Financials from "./components/Financials";
 import Messaging from "./components/Messaging";
 
-export type Page = "dashboard" | "properties" | "property-hub" | "clients" | "work-orders" | "staff" | "files" | "financials" | "messaging";
+export type Page = "dashboard" | "properties" | "property-hub" | "clients" | "work-orders" | "staff" | "files" | "financials" | "messaging" | "settings";
 
 export interface NavState {
   page: Page;
@@ -21,7 +21,7 @@ export interface NavState {
 
 function App() {
   const [nav, setNav] = useState<NavState>({ page: "dashboard" });
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navigate = (page: Page, extra?: { propertyId?: string; clientId?: string }) => {
     setNav({ page, ...extra });
@@ -47,6 +47,12 @@ function App() {
         return <Financials />;
       case "messaging":
         return <Messaging />;
+      case "settings":
+        return (
+          <div className="flex items-center justify-center h-64 text-gray-400 text-sm">
+            Settings — coming soon
+          </div>
+        );
       default:
         return <Dashboard navigate={navigate} />;
     }
@@ -62,7 +68,7 @@ function App() {
       />
       <div className="flex-1 flex flex-col min-w-0">
         <Navbar navigate={navigate} onMenuToggle={() => setSidebarOpen(o => !o)} />
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main className="flex-1 overflow-auto p-4 md:p-6 pb-20 md:pb-6">
           {renderPage()}
         </main>
       </div>
